@@ -36,6 +36,7 @@ def main(args):
         return
     
     output_path = os.path.join(args.save_dir, str(args.chapter_id))
+    os.makedirs(output_path, exist_ok=True)
     # Load HTML content
     with open(args.html_path, 'r', encoding='utf-8') as f:
         html_str = f.read()
