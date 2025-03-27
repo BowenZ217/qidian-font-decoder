@@ -47,7 +47,7 @@ git clone https://github.com/BowenZ217/qidian-font-decoder.git
 cd qidian-font-decoder
 
 # 执行解析脚本
-python decode_font.py https://book.qidian.com/chapter/xxx
+python decode_font.py --html_path chapter.html --chapter_id 1 --save_image --save_dir output/
 ```
 
 脚本会: 
