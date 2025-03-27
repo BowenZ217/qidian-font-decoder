@@ -1,0 +1,6 @@
+beautifulsoup4==4.13.3
+cssutils==2.11.1
+fonttools==4.56.0
+ImageHash==4.3.2
+Pillow==11.1.0
+requests==2.32.3
