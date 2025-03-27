@@ -39,6 +39,13 @@ python -m pip install paddlepaddle==3.0.0rc1 -i https://www.paddlepaddle.org.cn/
 pip install paddleocr
 ```
 
+当前使用版本:
+
+```bash
+paddleocr==2.10.0
+paddlepaddle==3.0.0rc1
+```
+
 ## 使用方法
 
 ```bash
