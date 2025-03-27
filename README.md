@@ -134,7 +134,7 @@ python decode_font.py --html_path chapter.html --chapter_id 12345678 --save_imag
 {
   "000001.png": "一",
   "000002.png": "二",
-  ...
+  "....png": "..."
 }
 ```
 

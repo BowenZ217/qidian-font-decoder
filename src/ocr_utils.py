@@ -7,6 +7,7 @@ import os
 import json
 
 import imagehash
+import paddle
 from fontTools.ttLib import TTFont
 from paddleocr import PaddleOCR
 from PIL import Image, ImageFont, ImageDraw
@@ -22,7 +23,8 @@ KNOWN_IMAGE_FOLDER = os.path.join(ROOT_DIR, "resources", "known_chars")
 KNOWN_MAPPING_JSON = os.path.join(ROOT_DIR, "resources", "image_label_map.json")
 
 # 初始化 OCR, 只用识别模型, 跳过检测
-OCR = PaddleOCR(use_angle_cls=False, lang='ch', det=False, show_log=False, rec_model_dir='PP-OCRv4-server')
+gpu_available  = paddle.device.is_compiled_with_cuda()
+OCR = PaddleOCR(use_angle_cls=False, lang='ch', det=False, use_gpu=gpu_available, show_log=False, rec_model_dir='PP-OCRv4-server')
 IMAGE_FOLDER = 'chars'
 
 def load_known_images(image_folder, mapping_json_path):
