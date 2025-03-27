@@ -172,3 +172,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Ignore generated image directories
+data/
+temp/
+output/
+PP-OCRv4-server/
