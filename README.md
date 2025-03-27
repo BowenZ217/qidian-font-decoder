@@ -86,10 +86,10 @@ python decode_font.py \
 ```
 
 参数说明: 
-- `--html_path`: 指定保存的 HTML 文件路径（必须）
-- `--chapter_id`: 对应章节的 ID（必须）
-- `--save_image`: 是否保存字符图像（可选）
-- `--save_dir`: 输出目录, 默认 `output/`（可选）
+- `--html_path`: 指定保存的 HTML 文件路径 (必须) 
+- `--chapter_id`: 对应章节的 ID (必须) 
+- `--save_image`: 是否保存字符图像 (可选) 
+- `--save_dir`: 输出目录, 默认 `output/` (可选) 
 
 ### 5. 输出结果
 
@@ -109,11 +109,11 @@ python decode_font.py --html_path chapter.html --chapter_id 12345678 --save_imag
 
 脚本会执行以下操作: 
 
-1. 自动下载章节所需字体文件（包含混淆字体和标准字体）
-2. 使用 OCR（或图像轮廓比对）还原加密字体对应的真实字符
+1. 自动下载章节所需字体文件 (包含混淆字体和标准字体) 
+2. 使用 OCR (或图像轮廓比对) 还原加密字体对应的真实字符
 3. 生成字符映射表, 并输出解密后的正文内容
 
-### 6. 人工辅助匹配失败字符（可选）
+### 6. 人工辅助匹配失败字符 (可选) 
 
 当部分字符无法通过 OCR 自动识别时, 你会看到类似提示: 
 
@@ -127,7 +127,7 @@ python decode_font.py --html_path chapter.html --chapter_id 12345678 --save_imag
 1. 打开失败字符图像路径:   
    `output/<chapter_id>/chars/unfound/`
 2. 将失败的图片重命名, 并移动到:   
-   `resources/known_chars/` 目录下（如: `000001.png`）
+   `resources/known_chars/` 目录下 (如: `000001.png`) 
 3. 在对应的 `resources/image_label_map.json` 中添加映射: 
 
 ```json
@@ -156,6 +156,22 @@ output/<chapter_id>/output.txt
 ```
 
 你可以打开该文件, 查看完整的正文内容是否恢复正确
+
+## 例子
+
+项目中已包含三个示例章节文件，位于 [`examples`](examples/) 文件夹中 (选自起点限免章节)
+
+你可以直接运行以下命令来测试解析效果:
+
+```bash
+python decode_font.py --html_path examples/833383226.html --chapter_id 833383226 --save_image
+```
+
+或者使用其他示例文件:
+
+```bash
+python decode_font.py --html_path examples/章节ID.html --chapter_id 章节ID --save_image
+```
 
 ## 项目结构
 
