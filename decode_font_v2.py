@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Main script to decode
+Main script to decode and de-obfuscate text from web-based HTML sources
+that use randomized font obfuscation for anti-scraping.
 
 Modules used:
 - font_utils: for handling font downloading
