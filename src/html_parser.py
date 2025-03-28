@@ -294,3 +294,27 @@ def render_paragraphs(main_paragraphs, rules, end_number):
         paragraphs_str += '\n\n'  # 每段落之间加空行
 
     return paragraphs_str, refl_list
+
+def format_chapter(title, paragraphs, authorSay=""):
+    """
+    Generate formatted chapter text:
+    - Begin with the title, followed by two newline characters.
+    - Split the paragraphs string into lines, strip each line of leading/trailing whitespace,
+      and join non-empty lines with two newline characters.
+    - If authorSay is provided, append "\n\n---\n\n" followed by the author's comment.
+    
+    Parameters:
+        title (str): The title of the chapter.
+        paragraphs (str): A multi-line string where each line represents a paragraph.
+        authorSay (str, optional): The author's comment. Defaults to an empty string.
+    
+    Returns:
+        str: The formatted chapter text.
+    """
+    formatted_paragraphs = "\n\n".join(line.strip() for line in paragraphs.splitlines() if line.strip())
+    result = f"{title}\n\n{formatted_paragraphs}"
+
+    # Append the author's comment if provided.
+    if authorSay.strip():
+        result += f"\n\n---\n\n{authorSay}"
+    return result

@@ -117,7 +117,7 @@ python decode_font.py --html_path chapter.html --chapter_id 12345678 --save_imag
 ### 5. 输出结果
 
 运行成功后将在 `output/{chapter_id}` 目录下生成: 
-- `output.txt`: 解码后的正文内容
+- `{chapter_id}.txt`: 解码后的正文内容
 - `font_mapping.json`: 字符映射字典
 - `chars/found/`: OCR 或匹配成功的字符图像 (若启用了 `--save_image`)
 - `chars/unfound/`: 未能识别的字符图像 (若启用了 `--save_image`, 便于人工检查和补充)
@@ -158,7 +158,7 @@ python decode_font.py --html_path chapter.html --chapter_id 12345678 --save_imag
 最终的解密文本将保存在: 
 
 ```
-output/<chapter_id>/output.txt
+output/<chapter_id>/<chapter_id>.txt
 ```
 
 请打开该文件, 检查正文内容是否恢复正确
