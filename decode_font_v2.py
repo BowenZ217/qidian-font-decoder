@@ -25,14 +25,14 @@ os.makedirs(TEMP_FOLDER, exist_ok=True)
 # Helper function
 # ----------------------
 
-def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr):
+def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr, use_freq):
     if not os.path.exists(html_path):
-        logger.log_message(f"[X] File not exist: {html_path}")
+        logger.log_message(f"[X] File not exist: {html_path}", level="warning")
         return
 
     txt_path = os.path.join(save_dir, "txt", f"{chapter_id}.txt")
     if os.path.exists(txt_path):
-        logger.log_message(f"[!] Chapter {chapter_id} already processed. Skipping.")
+        logger.log_message(f"[!] Chapter {chapter_id} already processed. Skipping.", level="warning")
         return
     output_path = os.path.join(save_dir, str(chapter_id))
     os.makedirs(output_path, exist_ok=True)
@@ -50,7 +50,7 @@ def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr):
         chapterName_str = ssr_pageContext["pageContext"]["pageProps"]["pageData"]["chapterInfo"]["chapterName"]
         authorSay_str = ssr_pageContext["pageContext"]["pageProps"]["pageData"]["chapterInfo"]["authorSay"]
     except Exception as e:
-        logger.log_message(f"[X] Fail to get ssr_pageContext: {e}")
+        logger.log_message(f"[X] Fail to get ssr_pageContext: {e}", level="warning")
         return
 
     # Save / Download Fonts
@@ -72,7 +72,7 @@ def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr):
     char_set = set(c for c in paragraphs_str if c not in {' ', '\n', '\u3000'})
     refl_set = set(refl_list)
     char_set = char_set - refl_set
-    ocr_utils.init(use_ocr=use_ocr)
+    ocr_utils.init(use_ocr=use_ocr, use_freq=use_freq)
     mapping_result = ocr_utils.generate_font_mapping(
         fixedFont_path,
         randomFont_path,
@@ -103,7 +103,7 @@ def main(args):
 
     html_folder = args.html_folder
     if not os.path.isdir(html_folder):
-        logger.log_message(f"[X] The folder {html_folder} does not exist or is not a directory.")
+        logger.log_message(f"[X] The folder {html_folder} does not exist or is not a directory.", level="warning")
         return
     txt_folder = os.path.join(args.save_dir, "txt")
     os.makedirs(txt_folder, exist_ok=True)
@@ -114,13 +114,13 @@ def main(args):
         
         basename, _ = os.path.splitext(file)
         if not basename.isdigit():
-            logger.log_message(f"[!] Skipping file with non-numeric basename: {file}")
+            logger.log_message(f"[!] Skipping file with non-numeric basename: {file}", level="warning")
             continue
 
         chapter_id = int(basename)
         html_path = os.path.join(html_folder, file)
         logger.log_message(f"[>] Processing chapter {chapter_id} from file {html_path}...")
-        process_chapter(html_path, chapter_id, args.save_image, args.save_dir, args.use_ocr)
+        process_chapter(html_path, chapter_id, args.save_image, args.save_dir, args.use_ocr, args.use_freq)
     return
 
 if __name__ == "__main__":
@@ -129,6 +129,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_image", action="store_true", help="Save rendered character images for inspection.")
     parser.add_argument("--save_dir", default="output", help="Directory to save output text and optional images.")
     parser.add_argument("--use_ocr", action="store_true", help="Enable OCR for generating font mapping (fallback matching if not enabled).")
+    parser.add_argument("--use_freq", action="store_true", help="Use frequency table to rank image vector")
 
     args = parser.parse_args()
     main(args)

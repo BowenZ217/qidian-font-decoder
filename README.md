@@ -90,7 +90,8 @@ python decode_font.py \
   --chapter_id <chapter_id> \
   --save_image \
   --save_dir output/ \
-  --use_ocr
+  --use_ocr \
+  --use_freq
 ```
 
 参数说明: 
@@ -99,11 +100,20 @@ python decode_font.py \
 - `--save_image`: 是否保存字符图像 (可选) 
 - `--save_dir`: 输出目录, 默认 `output/` (可选) 
 - `--use_ocr`: 启用 OCR 模块进行字体映射 (可选), 未添加该参数时, 仅使用 fallback 匹配方法, 无需安装 `PaddleOCR`
+- `--use_freq`: 当字符相似度不够高时, 通过字符频率来平衡匹配权重 (可选) 
+
+P.S. `2 extra bytes in post.stringData array` 为 `fontTools` 的提示信息, 大概率可以无视
 
 #### 示例命令
 
 ```bash
-python decode_font.py --html_path chapter.html --chapter_id 12345678 --save_image --save_dir output/
+python decode_font.py --html_path chapter.html --chapter_id 12345678 --save_image --save_dir output/ --use_freq
+```
+
+如果有多个 html 则可以将文件命名为 `<chapter_id>.html` 放在同一个文件夹内 (假设为 `data/html` 文件夹) 并运行
+
+```bash
+python decode_font_v2.py --html_folder data/html --save_image --save_dir output/ --use_freq
 ```
 
 ### 4.5. 脚本行为说明
@@ -111,7 +121,11 @@ python decode_font.py --html_path chapter.html --chapter_id 12345678 --save_imag
 脚本会执行以下操作: 
 
 1. 自动下载章节所需字体文件 (包含混淆字体和标准字体) 
-2. 使用 OCR (或 字符图像向量匹配) 还原加密字体对应的真实字符
+2. 还原加密字体对应的真实字符, 使用:
+  - 人工标注
+  - OCR
+  - 字符图像向量匹配
+  - 字符频率
 3. 生成字符映射表, 并输出解密后的正文内容
 
 ### 5. 输出结果
@@ -163,6 +177,8 @@ output/<chapter_id>/<chapter_id>.txt
 
 请打开该文件, 检查正文内容是否恢复正确
 
+日志文件可打开 `logs/qidian-decoder_<date>.log`
+
 ## 附加说明
 
 在本任务中, 由于已知背景和字体大小信息, 使用 `cosine_similarity` 对字符图像向量进行匹配通常能得到更准确的结果
@@ -178,13 +194,13 @@ output/<chapter_id>/<chapter_id>.txt
 你可以直接运行以下命令来测试解析效果:
 
 ```bash
-python decode_font.py --html_path examples/833383226.html --chapter_id 833383226 --save_image
+python decode_font.py --html_path examples/833383226.html --chapter_id 833383226 --save_image --use_freq
 ```
 
 或者使用其他示例文件:
 
 ```bash
-python decode_font.py --html_path examples/章节ID.html --chapter_id 章节ID --save_image
+python decode_font.py --html_path examples/章节ID.html --chapter_id 章节ID --save_image --use_freq
 ```
 
 ## 项目结构
@@ -318,3 +334,4 @@ python other_tools/generate_char_vectors.py \
 - [Source Han Sans SC](https://github.com/adobe-fonts/source-han-sans)
 - [fontTools](https://github.com/fonttools/fonttools)
 - [PaddleOCR](https://github.com/PaddlePaddle/PaddleOCR)
+- [chinese-dictionary](https://github.com/mapull/chinese-dictionary)
