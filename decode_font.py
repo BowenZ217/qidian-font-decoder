@@ -21,7 +21,7 @@ import argparse
 import json
 import os
 
-from src import font_utils, ocr_utils, html_parser
+from src import font_utils, ocr_utils, html_parser, logger
 
 TEMP_FOLDER = 'temp'
 os.makedirs(TEMP_FOLDER, exist_ok=True)
@@ -31,8 +31,9 @@ os.makedirs(TEMP_FOLDER, exist_ok=True)
 # ----------------------
 
 def main(args):
+    log = logger.setup_logging("qidian-decoder")
     if not os.path.exists(args.html_path):
-        print(f"[X] File not exist: {args.html_path}")
+        logger.log_message(f"[X] File not exist: {args.html_path}")
         return
     
     output_path = os.path.join(args.save_dir, str(args.chapter_id))
@@ -51,7 +52,7 @@ def main(args):
         chapterName_str = ssr_pageContext["pageContext"]["pageProps"]["pageData"]["chapterInfo"]["chapterName"]
         authorSay_str = ssr_pageContext["pageContext"]["pageProps"]["pageData"]["chapterInfo"]["authorSay"]
     except Exception as e:
-        print(f"[X] Fail to get ssr_pageContext: {e}")
+        logger.log_message(f"[X] Fail to get ssr_pageContext: {e}")
         return
 
     # Save / Download Fonts

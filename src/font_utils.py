@@ -7,6 +7,8 @@ Font utils
 import os
 import requests
 
+from .logger import log_message
+
 def download_font(url: str, folder: str) -> str:
     """
     Download a font file from the specified URL and save it into the given folder.
@@ -33,8 +35,8 @@ def download_font(url: str, folder: str) -> str:
         with open(filepath, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
-        print(f"[✓] 字体已保存到: {filepath}")  # Font saved to: {filepath}
+        log_message(f"[✓] 字体已保存到: {filepath}")  # Font saved to: {filepath}
         return filepath
     except Exception as e:
-        print(f"[X] 下载失败: {e}")  # Download failed
+        log_message(f"[X] 下载失败: {e}")  # Download failed
     return ""
