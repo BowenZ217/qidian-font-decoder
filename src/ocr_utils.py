@@ -12,6 +12,8 @@ from fontTools.ttLib import TTFont
 from PIL import Image, ImageFont, ImageDraw
 from sklearn.metrics.pairwise import cosine_similarity
 
+from .logger import log_message
+
 # 当前脚本路径（src/ocr_utils.py）
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -69,7 +71,7 @@ def load_known_images(image_folder, mapping_json_path):
     global KNOWN_HASH_DB
 
     if not os.path.exists(mapping_json_path) or not os.path.isdir(image_folder):
-        print(f"[!] Skipping hash DB loading: missing file or folder")
+        log_message(f"[!] Skipping hash DB loading: missing file or folder")
         KNOWN_HASH_DB = None
         return False
 
@@ -77,7 +79,7 @@ def load_known_images(image_folder, mapping_json_path):
         with open(mapping_json_path, 'r', encoding='utf-8') as f:
             label_map = json.load(f)
     except Exception as e:
-        print(f"[!] Failed to load label map: {e}")
+        log_message(f"[!] Failed to load label map: {e}")
         KNOWN_HASH_DB = None
         return False
 
@@ -91,16 +93,16 @@ def load_known_images(image_folder, mapping_json_path):
             img_hash = imagehash.phash(img)
             hash_db[img_hash] = label
         except Exception as e:
-            print(f"[!] Skipping image {filename}: {e}")
+            log_message(f"[!] Skipping image {filename}: {e}")
             continue
 
     if not hash_db:
-        print("[!] No valid images found in hash DB.")
+        log_message("[!] No valid images found in hash DB.")
         KNOWN_HASH_DB = None
         return False
 
     KNOWN_HASH_DB = hash_db
-    print(f"[✓] Loaded {len(hash_db)} image hashes from: {image_folder}")
+    log_message(f"[✓] Loaded {len(hash_db)} image hashes from: {image_folder}")
     return True
 
 def load_known_vector_db():
@@ -122,7 +124,7 @@ def load_known_vector_db():
     LABEL_TXT_PATH = os.path.join(ROOT_DIR, "resources", "char_vectors.txt")
 
     if not os.path.exists(VECTOR_NPY_PATH) or not os.path.exists(LABEL_TXT_PATH):
-        print(f"[!] Vector or label file not found. Skipping loading.")
+        log_message(f"[!] Vector or label file not found. Skipping loading.")
         return False
 
     try:
@@ -134,10 +136,10 @@ def load_known_vector_db():
         with open(LABEL_TXT_PATH, "r", encoding="utf-8") as f:
             CHAR_VECTOR_LABELS = [line.strip() for line in f]
 
-        print(f"[✓] Loaded {num_chars} character vectors from resources (size: {CHAR_VECTOR_SHAPE})")
+        log_message(f"[✓] Loaded {num_chars} character vectors from resources (size: {CHAR_VECTOR_SHAPE})")
         return True
     except Exception as e:
-        print(f"[!] Failed to load known vector DB: {e}")
+        log_message(f"[!] Failed to load known vector DB: {e}")
         return False
 
 def match_known_image(img, known_hash_db=None, threshold=5):
@@ -160,7 +162,7 @@ def match_known_image(img, known_hash_db=None, threshold=5):
     try:
         img_hash = imagehash.phash(img)
     except Exception as e:
-        print(f"[!] Failed to compute hash for image: {e}")
+        log_message(f"[!] Failed to compute hash for image: {e}")
         return None
 
     best_match = None
@@ -205,7 +207,7 @@ def match_known_image_v2(img, top_k: int = 1):
         results = [(CHAR_VECTOR_LABELS[i], sims[i]) for i in top_indices]
         return results[0] if top_k == 1 else results
     except Exception as e:
-        print(f"[!] Failed to match image: {e}")
+        log_message(f"[!] Failed to match image: {e}")
         return "" if top_k == 1 else []
 
 def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95):
@@ -226,7 +228,7 @@ def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95):
     if isinstance(matched, tuple):
         matched_char, sim_score = matched
         if sim_score >= vector_threshold:
-            print(f"[Fallback] 图像 vector 匹配成功 ({sim_score:.4f}):「{char}」→「{matched_char}」")
+            log_message(f"[Fallback] 图像 vector 匹配成功 ({sim_score:.4f}):「{char}」→「{matched_char}」")
             if save_path:
                 img.save(save_path)
             return matched_char
@@ -234,7 +236,7 @@ def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95):
     # phash fallback
     matched_char = match_known_image(img)
     if matched_char:
-        print(f"[Fallback] 图像 hash 匹配成功:「{char}」→「{matched_char}」")
+        log_message(f"[Fallback] 图像 hash 匹配成功:「{char}」→「{matched_char}」")
         if save_path:
             img.save(save_path)
         return matched_char
@@ -248,15 +250,15 @@ def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95):
             os.remove(temp_path)
             if ocr_result and ocr_result[0]:
                 predicted_char = ocr_result[0][0][1][0]
-                print(f"[OCR] 成功识别:「{char}」→「{predicted_char}」")
+                log_message(f"[OCR] 成功识别:「{char}」→「{predicted_char}」")
                 if save_path:
                     img.save(save_path)
                 return predicted_char
         except Exception as e:
-            print(f"[OCR] 识别出错: {e}")
+            log_message(f"[OCR] 识别出错: {e}")
 
     # all failed
-    print(f"[char] 识别失败:「{char}」({hex(ord(char))})")
+    log_message(f"[char] 识别失败:「{char}」({hex(ord(char))})")
     return None
 
 def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set, output_path, save_image=False):
@@ -379,7 +381,7 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
         return mapping_result
 
     except Exception as e:
-        print(f"[X] 发生错误: {e}")
+        log_message(f"[X] 发生错误: {e}")
     return {}
 
 def format_font_mapping_md(font_map, output_folder: str):
@@ -402,10 +404,10 @@ def format_font_mapping_md(font_map, output_folder: str):
                 md_file.write(f"![{original_char}]({image_path})\n\n")
                 md_file.write("---\n\n")
 
-        print(f"[✓] Markdown 文件已保存到: {out_path}")
+        log_message(f"[✓] Markdown 文件已保存到: {out_path}")
 
     except Exception as e:
-        print(f"[X] 写入 Markdown 文件时出错: {e}")
+        log_message(f"[X] 写入 Markdown 文件时出错: {e}")
 
 def apply_font_mapping_to_text(text: str, font_map: dict):
     """

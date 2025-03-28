@@ -20,6 +20,8 @@ import logging
 import cssutils
 from bs4 import BeautifulSoup, Tag
 
+from .logger import log_message
+
 cssutils.log.setLevel(logging.CRITICAL)
 
 def find_ssr_pageContext(html_str: str) -> dict:
@@ -41,7 +43,7 @@ def find_ssr_pageContext(html_str: str) -> dict:
             data_dict = json.loads(json_data)  # 解析 JSON 字符串为 Python 字典
             return data_dict
     except Exception as e:
-        print(f"[X] Error at find_ssr_pageContext: {e}")
+        log_message(f"[X] Error at find_ssr_pageContext: {e}")
     return {}
 
 def extract_paragraphs_recursively(html_str: str, chapter_id: int) -> list:
@@ -275,7 +277,7 @@ def render_paragraphs(main_paragraphs, rules, end_number):
                     continue
                 
                 if not p_class_str:
-                    print(f"[!] not find p_class_str: {class_list}")
+                    log_message(f"[!] not find p_class_str: {class_list}")
                     continue
                 # 普通标签处理，根据 orders 顺序匹配
                 for ord_selector, ord_id in orders:
