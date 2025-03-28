@@ -6,8 +6,8 @@ from datetime import datetime
 LOGGER = None
 
 class CustomFormatter(logging.Formatter):
-    def __init__(self, fmt, datefmt=None):
-        super().__init__(fmt, datefmt)
+    def __init__(self, fmt, datefmt=None, style='%'):
+        super().__init__(fmt=fmt, datefmt=datefmt, style=style)
         self.last_log_time = None
         self.last_name = ""
         self.last_levelname = ""
@@ -16,9 +16,11 @@ class CustomFormatter(logging.Formatter):
 
     def format(self, record):
         current_log_time = time.strftime("%Y-%m-%d %H:%M", time.localtime(record.created))
-        if (current_log_time == self.last_log_time and
+        if (
+            current_log_time == self.last_log_time and
             record.levelname == self.last_levelname and
-            record.name == self.last_name):
+            record.name == self.last_name
+        ):
             self._style._fmt = self.simple_fmt
         else:
             self._style._fmt = self.original_fmt
@@ -56,7 +58,8 @@ def setup_logging(log_name=""):
     
     # Create a console handler
     console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
+    # console.setLevel(logging.INFO)
+    console.setLevel(logging.WARNING)
 
     # Define a formatter and set it for both handlers
     full_format = '%(asctime)s - %(name)s - %(levelname)s:\n%(message)s'
@@ -72,6 +75,7 @@ def setup_logging(log_name=""):
     # Add handlers to the logger
     LOGGER.addHandler(handler)
     LOGGER.addHandler(console)
+    LOGGER.propagate = False
 
     return LOGGER
 

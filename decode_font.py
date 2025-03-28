@@ -33,7 +33,7 @@ os.makedirs(TEMP_FOLDER, exist_ok=True)
 def main(args):
     log = logger.setup_logging("qidian-decoder")
     if not os.path.exists(args.html_path):
-        logger.log_message(f"[X] File not exist: {args.html_path}")
+        logger.log_message(f"[X] File not exist: {args.html_path}", level="warning")
         return
     
     output_path = os.path.join(args.save_dir, str(args.chapter_id))
@@ -52,7 +52,7 @@ def main(args):
         chapterName_str = ssr_pageContext["pageContext"]["pageProps"]["pageData"]["chapterInfo"]["chapterName"]
         authorSay_str = ssr_pageContext["pageContext"]["pageProps"]["pageData"]["chapterInfo"]["authorSay"]
     except Exception as e:
-        logger.log_message(f"[X] Fail to get ssr_pageContext: {e}")
+        logger.log_message(f"[X] Fail to get ssr_pageContext: {e}", level="warning")
         return
 
     # Save / Download Fonts
@@ -74,7 +74,7 @@ def main(args):
     char_set = set(c for c in paragraphs_str if c not in {' ', '\n', '\u3000'})
     refl_set = set(refl_list)
     char_set = char_set - refl_set
-    ocr_utils.init(use_ocr=args.use_ocr)
+    ocr_utils.init(use_ocr=args.use_ocr, use_freq=args.use_freq)
     mapping_result = ocr_utils.generate_font_mapping(
         fixedFont_path,
         randomFont_path,
@@ -103,6 +103,7 @@ if __name__ == "__main__":
     parser.add_argument("--save_image", action="store_true", help="Save rendered character images for inspection.")
     parser.add_argument("--save_dir", default="output", help="Directory to save output text and optional images.")
     parser.add_argument("--use_ocr", action="store_true", help="Enable OCR for generating font mapping (fallback matching if not enabled).")
+    parser.add_argument("--use_freq", action="store_true", help="Use frequency table to rank image vector")
 
     args = parser.parse_args()
     main(args)

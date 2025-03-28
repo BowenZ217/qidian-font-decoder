@@ -38,5 +38,5 @@ def download_font(url: str, folder: str) -> str:
         log_message(f"[✓] 字体已保存到: {filepath}")  # Font saved to: {filepath}
         return filepath
     except Exception as e:
-        log_message(f"[X] 下载失败: {e}")  # Download failed
+        log_message(f"[X] 下载失败: {e}", level="warning")  # Download failed
     return ""
