@@ -33,8 +33,8 @@ def download_font(url: str, folder: str) -> str:
         with open(filepath, "wb") as f:
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
-        print(f"字体已保存到: {filepath}")  # Font saved to: {filepath}
+        print(f"[✓] 字体已保存到: {filepath}")  # Font saved to: {filepath}
         return filepath
     except Exception as e:
-        print(f"下载失败: {e}")  # Download failed
+        print(f"[X] 下载失败: {e}")  # Download failed
     return ""

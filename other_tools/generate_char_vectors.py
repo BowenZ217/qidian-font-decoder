@@ -56,7 +56,7 @@ def generate_char_vectors(font_path, start_idx, end_idx, extra_chars, output_fil
             vectors.append(vec)
             valid_chars.append(ch)
         except Exception as e:
-            print(f"Skipping char '{ch}' due to error: {e}")
+            print(f"[!] Skipping char '{ch}' due to error: {e}")
             continue
 
     vectors = np.array(vectors)
