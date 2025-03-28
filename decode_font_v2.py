@@ -1,12 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Main script to decode and de-obfuscate text from web-based HTML sources
-that use randomized font obfuscation for anti-scraping.
-
-It extracts the embedded fonts and CSS rules from the HTML,
-generates a character mapping between obfuscated and real fonts using OCR,
-then reconstructs the readable paragraphs.
+Main script to decode
 
 Modules used:
 - font_utils: for handling font downloading
@@ -14,7 +9,7 @@ Modules used:
 - html_parser: for parsing and extracting content from HTML
 
 Usage example:
-    python decode_font.py --html_path chapter.html --chapter_id 1 --save_image --save_dir output/ --use_ocr
+    python decode_font_v2.py --html_folder data/html --save_image --save_dir output/ --use_ocr
 """
 
 import argparse
@@ -27,18 +22,22 @@ TEMP_FOLDER = 'temp'
 os.makedirs(TEMP_FOLDER, exist_ok=True)
 
 # ----------------------
-# Main process
+# Helper function
 # ----------------------
 
-def main(args):
-    if not os.path.exists(args.html_path):
-        print(f"[X] File not exist: {args.html_path}")
+def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr):
+    if not os.path.exists(html_path):
+        print(f"[X] File not exist: {html_path}")
         return
-    
-    output_path = os.path.join(args.save_dir, str(args.chapter_id))
+
+    txt_path = os.path.join(save_dir, "txt", f"{chapter_id}.txt")
+    if os.path.exists(txt_path):
+        print(f"[!] Chapter {chapter_id} already processed. Skipping.")
+        return
+    output_path = os.path.join(save_dir, str(chapter_id))
     os.makedirs(output_path, exist_ok=True)
     # Load HTML content
-    with open(args.html_path, 'r', encoding='utf-8') as f:
+    with open(html_path, 'r', encoding='utf-8') as f:
         html_str = f.read()
 
     # Extract embedded fonts and CSS from HTML (SSR React data)
@@ -65,7 +64,7 @@ def main(args):
     fixedFont_path = font_utils.download_font(fixedFontWoff2_str, TEMP_FOLDER)
 
     # Extract and render paragraphs from HTML with CSS rules
-    main_paragraphs, end_number = html_parser.extract_paragraphs_recursively(html_str, args.chapter_id)
+    main_paragraphs, end_number = html_parser.extract_paragraphs_recursively(html_str, chapter_id)
     paragraphs_rules = html_parser.parse_rule(css_str)
     paragraphs_str, refl_list = html_parser.render_paragraphs(main_paragraphs, paragraphs_rules, end_number)
 
@@ -73,32 +72,58 @@ def main(args):
     char_set = set(c for c in paragraphs_str if c not in {' ', '\n', '\u3000'})
     refl_set = set(refl_list)
     char_set = char_set - refl_set
-    ocr_utils.init(use_ocr=args.use_ocr)
+    ocr_utils.init(use_ocr=use_ocr)
     mapping_result = ocr_utils.generate_font_mapping(
         fixedFont_path,
         randomFont_path,
         char_set,
         refl_set,
         output_path,
-        args.save_image
+        save_image
     )
 
     # If enabled, save mapping preview images in Markdown format
-    if args.save_image:
+    if save_image:
         ocr_utils.format_font_mapping_md(mapping_result, output_path)
 
     # Reconstruct final readable text
     final_paragraphs_str = ocr_utils.apply_font_mapping_to_text(paragraphs_str, mapping_result)
     final_str = html_parser.format_chapter(chapterName_str, final_paragraphs_str, authorSay_str)
-    final_path = os.path.join(output_path, f"{args.chapter_id}.txt")
-    with open(final_path, 'w', encoding='utf-8') as f:
+    with open(txt_path, 'w', encoding='utf-8') as f:
         f.write(final_str)
+    print(f"[√] Processed chapter {chapter_id} successfully.")
+    return
+
+# ----------------------
+# Main process
+# ----------------------
+
+def main(args):
+    html_folder = args.html_folder
+    if not os.path.isdir(html_folder):
+        print(f"[X] The folder {html_folder} does not exist or is not a directory.")
+        return
+    txt_folder = os.path.join(args.save_dir, "txt")
+    os.makedirs(txt_folder, exist_ok=True)
+
+    for file in os.listdir(html_folder):
+        if not file.endswith(".html"):
+            continue
+        
+        basename, _ = os.path.splitext(file)
+        if not basename.isdigit():
+            print(f"[!] Skipping file with non-numeric basename: {file}")
+            continue
+
+        chapter_id = int(basename)
+        html_path = os.path.join(html_folder, file)
+        print(f"[>] Processing chapter {chapter_id} from file {html_path}...")
+        process_chapter(html_path, chapter_id, args.save_image, args.save_dir, args.use_ocr)
     return
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Decode obfuscated font HTML and reconstruct readable text.")
-    parser.add_argument("--html_path", required=True, help="Path to the input HTML file.")
-    parser.add_argument("--chapter_id", type=int, required=True, help="Chapter ID used for recursive parsing.")
+    parser = argparse.ArgumentParser(description="Decode font and extract chapter content from HTML.")
+    parser.add_argument("--html_folder", required=True, help="Folder of HTML files.")
     parser.add_argument("--save_image", action="store_true", help="Save rendered character images for inspection.")
     parser.add_argument("--save_dir", default="output", help="Directory to save output text and optional images.")
     parser.add_argument("--use_ocr", action="store_true", help="Enable OCR for generating font mapping (fallback matching if not enabled).")
