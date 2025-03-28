@@ -31,7 +31,7 @@ def generate_char_list(start_idx, end_idx, extra_chars, output_file):
         for c in chars:
             f.write(c + '\n')
 
-    print(f"Saved {len(chars)} characters to {output_file}")
+    print(f"[✓] Saved {len(chars)} characters to {output_file}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

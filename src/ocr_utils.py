@@ -379,7 +379,7 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
         return mapping_result
 
     except Exception as e:
-        print(f"发生错误: {e}")
+        print(f"[X] 发生错误: {e}")
     return {}
 
 def format_font_mapping_md(font_map, output_folder: str):
@@ -402,10 +402,23 @@ def format_font_mapping_md(font_map, output_folder: str):
                 md_file.write(f"![{original_char}]({image_path})\n\n")
                 md_file.write("---\n\n")
 
-        print(f"✅ Markdown 文件已保存到: {out_path}")
+        print(f"[✓] Markdown 文件已保存到: {out_path}")
 
     except Exception as e:
-        print(f"❌ 写入 Markdown 文件时出错: {e}")
+        print(f"[X] 写入 Markdown 文件时出错: {e}")
 
-def fix_paragraphs(paragraphs_str, char_map):
-    return ''.join(char_map.get(char, char) for char in paragraphs_str)
+def apply_font_mapping_to_text(text: str, font_map: dict):
+    """
+    Apply a font mapping to the given text.
+
+    This function iterates over each character in the input text and replaces it with the corresponding
+    value from the mapping dictionary if one exists. If a character does not have a mapping, it remains unchanged.
+
+    Args:
+        text (str): The input text containing characters to be mapped (e.g., obfuscated font characters).
+        font_map (dict): A dictionary mapping characters (keys) to their intended (real) characters (values).
+
+    Returns:
+        str: The resulting text after applying the font mapping.
+    """
+    return ''.join(font_map.get(char, char) for char in text)

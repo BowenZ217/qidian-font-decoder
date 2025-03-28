@@ -82,7 +82,7 @@ def main(args):
         ocr_utils.format_font_mapping_md(mapping_result, output_path)
 
     # Reconstruct final readable text
-    final_str = ocr_utils.fix_paragraphs(paragraphs_str, mapping_result)
+    final_str = ocr_utils.apply_font_mapping_to_text(paragraphs_str, mapping_result)
     final_path = os.path.join(output_path, "output.txt")
     with open(final_path, 'w', encoding='utf-8') as f:
         f.write(final_str)

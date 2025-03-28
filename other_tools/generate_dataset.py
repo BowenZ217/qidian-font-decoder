@@ -74,7 +74,7 @@ def generate_dataset(font_path, char_file, output_dir, image_size=64, font_size=
     try:
         font = ImageFont.truetype(font_path, font_size)
     except Exception as e:
-        print(f"Failed to load font: {e}")
+        print(f"[X] Failed to load font: {e}")
         return
 
     with open(label_file, 'w', encoding='utf-8') as label_f:
@@ -84,7 +84,7 @@ def generate_dataset(font_path, char_file, output_dir, image_size=64, font_size=
             img.save(os.path.join(output_dir, f"{file_id}.png"))
             label_f.write(f"{file_id}\t{char}\n")
 
-    print(f"Generated {len(chars)} images in {output_dir}")
+    print(f"[✓] Generated {len(chars)} images in {output_dir}")
 
 
 if __name__ == "__main__":
