@@ -5,3 +5,5 @@ ImageHash==4.3.2
 Pillow==11.1.0
 requests==2.32.3
 brotli==1.1.0
+matplotlib==3.9.4
+scikit-learn==1.6.1

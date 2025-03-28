@@ -7,10 +7,10 @@ import os
 import json
 
 import imagehash
-import paddle
+import numpy as np
 from fontTools.ttLib import TTFont
-from paddleocr import PaddleOCR
 from PIL import Image, ImageFont, ImageDraw
+from sklearn.metrics.pairwise import cosine_similarity
 
 # 当前脚本路径（src/ocr_utils.py）
 CUR_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,27 +21,148 @@ ROOT_DIR = os.path.abspath(os.path.join(CUR_DIR, ".."))
 # 拼出资源路径
 KNOWN_IMAGE_FOLDER = os.path.join(ROOT_DIR, "resources", "known_chars")
 KNOWN_MAPPING_JSON = os.path.join(ROOT_DIR, "resources", "image_label_map.json")
+VECTOR_NPY_PATH = os.path.join(ROOT_DIR, "resources", "char_vectors.npy")
+LABEL_TXT_PATH = os.path.join(ROOT_DIR, "resources", "char_vectors.txt")
 
-# 初始化 OCR, 只用识别模型, 跳过检测
-gpu_available  = paddle.device.is_compiled_with_cuda()
-OCR = PaddleOCR(use_angle_cls=False, lang='ch', det=False, use_gpu=gpu_available, show_log=False, rec_model_dir='PP-OCRv4-server')
 IMAGE_FOLDER = 'chars'
 
+# 全局变量
+USE_OCR = False
+OCR = None
+KNOWN_HASH_DB = None
+CHAR_VECTOR_DB = None
+CHAR_VECTOR_LABELS = None
+CHAR_VECTOR_SHAPE = None  # (H, W)
+
+def init(use_ocr=False):
+    """
+    Initial all global values
+    """
+    global OCR, USE_OCR
+    if use_ocr:
+        import paddle
+        from paddleocr import PaddleOCR
+        USE_OCR = True
+        # 初始化 OCR, 只用识别模型, 跳过检测
+        gpu_available = paddle.device.is_compiled_with_cuda()
+        OCR = PaddleOCR(use_angle_cls=False, lang='ch', det=False, use_gpu=gpu_available, show_log=False, rec_model_dir='PP-OCRv4-server')
+
+    hash_db_check = load_known_images(KNOWN_IMAGE_FOLDER, KNOWN_MAPPING_JSON)
+    vector_db_check = load_known_vector_db()
+    return hash_db_check and vector_db_check
+
 def load_known_images(image_folder, mapping_json_path):
-    with open(mapping_json_path, 'r', encoding='utf-8') as f:
-        label_map = json.load(f)
+    """
+    Loads known labeled character images into a hash map using perceptual hash (phash).
+
+    Args:
+        image_folder (str): Folder containing the labeled character images.
+        mapping_json_path (str): JSON file that maps image filenames to character labels.
+
+    Returns:
+        bool: True if successfully loaded, False otherwise.
+
+    Notes:
+        - If either path is missing or loading fails, returns False and does not raise.
+        - Result is also stored in global KNOWN_HASH_DB.
+    """
+    global KNOWN_HASH_DB
+
+    if not os.path.exists(mapping_json_path) or not os.path.isdir(image_folder):
+        print(f"[!] Skipping hash DB loading: missing file or folder")
+        KNOWN_HASH_DB = None
+        return False
+
+    try:
+        with open(mapping_json_path, 'r', encoding='utf-8') as f:
+            label_map = json.load(f)
+    except Exception as e:
+        print(f"[!] Failed to load label map: {e}")
+        KNOWN_HASH_DB = None
+        return False
 
     hash_db = {}
     for filename, label in label_map.items():
         img_path = os.path.join(image_folder, filename)
-        if os.path.exists(img_path):
+        if not os.path.exists(img_path):
+            continue
+        try:
             img = Image.open(img_path).convert('L')
             img_hash = imagehash.phash(img)
             hash_db[img_hash] = label
-    return hash_db
+        except Exception as e:
+            print(f"[!] Skipping image {filename}: {e}")
+            continue
 
-def match_known_image(img, known_hash_db, threshold=5):
-    img_hash = imagehash.phash(img)
+    if not hash_db:
+        print("[!] No valid images found in hash DB.")
+        KNOWN_HASH_DB = None
+        return False
+
+    KNOWN_HASH_DB = hash_db
+    print(f"[✓] Loaded {len(hash_db)} image hashes from: {image_folder}")
+    return True
+
+def load_known_vector_db():
+    """
+    Loads precomputed character vectors and their labels from resources.
+
+    Returns:
+        bool: True if successfully loaded, False otherwise.
+    
+    Notes:
+        - Expects 'char_vectors.npy' and 'char_vectors.txt' in 'resources' folder.
+        - If missing, the function returns False and does not raise error.
+    """
+    global CHAR_VECTOR_DB, CHAR_VECTOR_LABELS, CHAR_VECTOR_SHAPE
+
+    CUR_DIR = os.path.dirname(os.path.abspath(__file__))
+    ROOT_DIR = os.path.abspath(os.path.join(CUR_DIR, ".."))
+    VECTOR_NPY_PATH = os.path.join(ROOT_DIR, "resources", "char_vectors.npy")
+    LABEL_TXT_PATH = os.path.join(ROOT_DIR, "resources", "char_vectors.txt")
+
+    if not os.path.exists(VECTOR_NPY_PATH) or not os.path.exists(LABEL_TXT_PATH):
+        print(f"[!] Vector or label file not found. Skipping loading.")
+        return False
+
+    try:
+        CHAR_VECTOR_DB = np.load(VECTOR_NPY_PATH)
+        num_chars, dim = CHAR_VECTOR_DB.shape
+        side = int(np.sqrt(dim))
+        CHAR_VECTOR_SHAPE = (side, side)
+
+        with open(LABEL_TXT_PATH, "r", encoding="utf-8") as f:
+            CHAR_VECTOR_LABELS = [line.strip() for line in f]
+
+        print(f"[✓] Loaded {num_chars} character vectors from resources (size: {CHAR_VECTOR_SHAPE})")
+        return True
+    except Exception as e:
+        print(f"[!] Failed to load known vector DB: {e}")
+        return False
+
+def match_known_image(img, known_hash_db=None, threshold=5):
+    """
+    Match an image to known image hashes.
+
+    Args:
+        img (PIL.Image): Input image to match.
+        known_hash_db (dict or None): Optional hash db to use, or None to use global.
+
+    Returns:
+        str or None: Best matched character label, or None if not found.
+    """
+    if known_hash_db is None:
+        known_hash_db = KNOWN_HASH_DB
+
+    if not known_hash_db:
+        return None
+
+    try:
+        img_hash = imagehash.phash(img)
+    except Exception as e:
+        print(f"[!] Failed to compute hash for image: {e}")
+        return None
+
     best_match = None
     best_distance = threshold + 1
     for h, label in known_hash_db.items():
@@ -49,8 +170,93 @@ def match_known_image(img, known_hash_db, threshold=5):
         if dist < best_distance:
             best_distance = dist
             best_match = label
-    if best_distance <= threshold:
-        return best_match
+
+    return best_match if best_distance <= threshold else None
+
+def match_known_image_v2(img, top_k: int = 1):
+    """
+    Match an input image to known character vectors.
+
+    Args:
+        img (PIL.Image): Input image to match.
+        top_k (int): Number of top matches to return (default 1).
+
+    Returns:
+        (str, float) or List[Tuple[str, float]]:
+            - Top-1 result: returns (char, similarity) or
+            - Top-k: list of (char, similarity)
+            - If no match found or vectors not loaded: returns "" or [] respectively
+
+    Notes:
+        - If vector DB is not loaded, returns default empty result instead of raising.
+        - Cosine similarity is used for comparison.
+    """
+    global CHAR_VECTOR_DB, CHAR_VECTOR_LABELS, CHAR_VECTOR_SHAPE
+
+    if CHAR_VECTOR_DB is None or CHAR_VECTOR_LABELS is None or CHAR_VECTOR_SHAPE is None:
+        return "" if top_k == 1 else []
+
+    try:
+        img = img.convert("L").resize(CHAR_VECTOR_SHAPE)
+        vec = np.array(img).astype(np.float32).flatten() / 255.0
+
+        sims = cosine_similarity([vec], CHAR_VECTOR_DB)[0]
+        top_indices = np.argsort(sims)[-top_k:][::-1]
+        results = [(CHAR_VECTOR_LABELS[i], sims[i]) for i in top_indices]
+        return results[0] if top_k == 1 else results
+    except Exception as e:
+        print(f"[!] Failed to match image: {e}")
+        return "" if top_k == 1 else []
+
+def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95):
+    """
+    Try to recognize a character image using OCR, hash, or vector fallback.
+
+    Args:
+        char (str): Original character (for logging)
+        img (PIL.Image): Image to recognize
+        save_path (str): If given, save the image on success or failure
+        vector_threshold (float): Similarity threshold for vector matching
+
+    Returns:
+        str or None: Predicted or matched character, or None if all failed
+    """
+    # vector fallback
+    matched = match_known_image_v2(img)
+    if isinstance(matched, tuple):
+        matched_char, sim_score = matched
+        if sim_score >= vector_threshold:
+            print(f"[Fallback] 图像 vector 匹配成功 ({sim_score:.4f}):「{char}」→「{matched_char}」")
+            if save_path:
+                img.save(save_path)
+            return matched_char
+
+    # phash fallback
+    matched_char = match_known_image(img)
+    if matched_char:
+        print(f"[Fallback] 图像 hash 匹配成功:「{char}」→「{matched_char}」")
+        if save_path:
+            img.save(save_path)
+        return matched_char
+
+    # OCR
+    if USE_OCR:
+        try:
+            temp_path = "temp.png"
+            img.save(temp_path)
+            ocr_result = OCR.ocr(temp_path, cls=False)
+            os.remove(temp_path)
+            if ocr_result and ocr_result[0]:
+                predicted_char = ocr_result[0][0][1][0]
+                print(f"[OCR] 成功识别:「{char}」→「{predicted_char}」")
+                if save_path:
+                    img.save(save_path)
+                return predicted_char
+        except Exception as e:
+            print(f"[OCR] 识别出错: {e}")
+
+    # all failed
+    print(f"[char] 识别失败:「{char}」({hex(ord(char))})")
     return None
 
 def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set, output_path, save_image=False):
@@ -78,20 +284,21 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
               Also saves this mapping to a JSON file in the output_path.
     """
     try:
+        canvas_size = 64   # Canvas size
+        font_size = 48     # Font size
         # Load and render fonts
         fixed_ttf = TTFont(fixed_font_path)
         fixed_cmap = fixed_ttf.getBestCmap()
         fixed_chars = {chr(code) for code in fixed_cmap.keys()}
-        fixed_render = ImageFont.truetype(fixed_font_path, 40)
+        fixed_render = ImageFont.truetype(fixed_font_path, font_size)
 
         random_ttf = TTFont(random_font_path)
         random_cmap = random_ttf.getBestCmap()
         random_chars = {chr(code) for code in random_cmap.keys()}
-        random_render = ImageFont.truetype(random_font_path, 40)
+        random_render = ImageFont.truetype(random_font_path, font_size)
 
-        known_hash_db = load_known_images(KNOWN_IMAGE_FOLDER, KNOWN_MAPPING_JSON)
-
-        canvas_size = 64
+        if CHAR_VECTOR_DB is None or CHAR_VECTOR_LABELS is None or CHAR_VECTOR_SHAPE is None or KNOWN_HASH_DB is None:
+            init()
 
         if save_image:
             # os.makedirs(f"{output_path}/{IMAGE_FOLDER}/found", exist_ok=True)
@@ -130,28 +337,19 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
             if not valid:
                 continue
 
-            temp_path = "temp.png"
-            img.save(temp_path)
-            ocr_result = OCR.ocr(temp_path, cls=False)
-            os.remove(temp_path)
+            found_path = os.path.join(output_path, IMAGE_FOLDER, "found", f"{hex(ord(char))}.png")
+            unfound_path = os.path.join(output_path, IMAGE_FOLDER, "unfound", f"{hex(ord(char))}.png")
+            matched_char = recognize_with_fallback(
+                char,
+                img,
+                save_path=found_path if save_image else None
+            )
 
-            if ocr_result and ocr_result[0]:
-                predicted_char = ocr_result[0][0][1][0]
-                mapping_result[char] = predicted_char
-                if save_image:
-                    # img.save(f"{output_path}/{IMAGE_FOLDER}/found/{hex(ord(char))}.png")
-                    img.save(os.path.join(output_path, IMAGE_FOLDER, "found", f"{hex(ord(char))}.png"))
+            if matched_char:
+                mapping_result[char] = matched_char
             else:
-                # 尝试匹配本地图像库
-                matched_char = match_known_image(img, known_hash_db)
-                if matched_char:
-                    mapping_result[char] = matched_char
-                    print(f"[Fallback] 图像匹配成功:「{char}」→「{matched_char}」")
-                else:
-                    print(f"[char] 识别失败:「{char}」({hex(ord(char))})")
-                    if save_image:
-                        # img.save(f"{output_path}/{IMAGE_FOLDER}/unfound/{hex(ord(char))}.png")
-                        img.save(os.path.join(output_path, IMAGE_FOLDER, "unfound", f"{hex(ord(char))}.png"))
+                if save_image:
+                    img.save(unfound_path)
 
         # Process mirrored characters
         for char in sorted(refl_set):
@@ -159,29 +357,20 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
             if not valid:
                 continue
 
-            temp_path = "temp.png"
-            img.save(temp_path)
-            ocr_result = OCR.ocr(temp_path, cls=False)
-            os.remove(temp_path)
+            found_path = os.path.join(output_path, IMAGE_FOLDER, "found", f"{hex(ord(char))}_refl.png")
+            unfound_path = os.path.join(output_path, IMAGE_FOLDER, "unfound", f"{hex(ord(char))}_refl.png")
+            matched_char = recognize_with_fallback(
+                char,
+                img,
+                save_path=found_path if save_image else None
+            )
 
-            if ocr_result and ocr_result[0]:
-                predicted_char = ocr_result[0][0][1][0]
-                mapping_result[char] = predicted_char
-                if save_image:
-                    # img.save(f"{output_path}/{IMAGE_FOLDER}/found/{hex(ord(char))}_refl.png")
-                    img.save(os.path.join(output_path, IMAGE_FOLDER, "found", f"{hex(ord(char))}_refl.png"))
+            if matched_char:
+                mapping_result[char] = matched_char
             else:
-                # 尝试匹配本地图像库
-                matched_char = match_known_image(img, known_hash_db)
-                if matched_char:
-                    mapping_result[char] = matched_char
-                    print(f"[Fallback] 图像匹配成功:「{char}」→「{matched_char}」")
-                else:
-                    print(f"[refl] 识别失败:「{char}」({hex(ord(char))})")
-                    if save_image:
-                        # img.save(f"{output_path}/{IMAGE_FOLDER}/unfound/{hex(ord(char))}_refl.png")
-                        img.save(os.path.join(output_path, IMAGE_FOLDER, "unfound", f"{hex(ord(char))}_refl.png"))
-        
+                if save_image:
+                    img.save(unfound_path)
+
         # Save mapping result to JSON
         # filepath = f"{output_path}/font_mapping.json"
         filepath = os.path.join(output_path, "font_mapping.json")
@@ -202,7 +391,7 @@ def format_font_mapping_md(font_map, output_folder: str):
         output_folder (str): 输出 Markdown 文件路径
     """
     try:
-        image_dir = os.path.join(output_folder, IMAGE_FOLDER, "found")
+        image_dir = os.path.join(IMAGE_FOLDER, "found")
         out_path = os.path.join(output_folder, "font_mapping.md")
         with open(out_path, "w", encoding="utf-8") as md_file:
             for original_char, recognized_char in font_map.items():
@@ -210,10 +399,7 @@ def format_font_mapping_md(font_map, output_folder: str):
                 image_path = os.path.join(image_dir, f"{unicode_hex}.png").replace("\\", "/")  # for Windows path compatibility
 
                 md_file.write(f"**{original_char}** ({unicode_hex}) → **{recognized_char}**\n\n")
-                if os.path.exists(image_path):
-                    md_file.write(f"![{original_char}]({image_path})\n\n")
-                else:
-                    md_file.write(f"(未找到图像文件)\n\n")
+                md_file.write(f"![{original_char}]({image_path})\n\n")
                 md_file.write("---\n\n")
 
         print(f"✅ Markdown 文件已保存到: {out_path}")
