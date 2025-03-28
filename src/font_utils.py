@@ -27,6 +27,9 @@ def download_font(url: str, folder: str) -> str:
     os.makedirs(folder, exist_ok=True)
     filename = url.split("/")[-1]
     filepath = os.path.join(folder, filename)
+    if os.path.exists(filepath):
+        log_message(f"[✓] 字体已存在: {filepath}")
+        return filepath
     # Try to download the font file
     try:
         response = requests.get(url, headers=headers, stream=True)
