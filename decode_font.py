@@ -14,7 +14,7 @@ Modules used:
 - html_parser: for parsing and extracting content from HTML
 
 Usage example:
-    python decode_font.py --html_path chapter.html --chapter_id 1 --save_image --save_dir output/ --use_ocr
+    python decode_font.py --html_path chapter.html --chapter_id 1 --save_image --save_dir output/ --use_ocr --use_freq
 """
 
 import argparse
