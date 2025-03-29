@@ -10,7 +10,7 @@ Modules used:
 - html_parser: for parsing and extracting content from HTML
 
 Usage example:
-    python decode_font_v2.py --html_folder data/html --save_image --save_dir output/ --use_ocr
+    python decode_font_v2.py --html_folder data/html --save_image --save_dir output/ --use_ocr --use_freq
 """
 
 import argparse

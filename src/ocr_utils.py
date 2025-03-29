@@ -1,7 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-OCR Utils
+OCR Utils Module
+
+This module provides utility functions for optical character recognition (OCR) and font mapping,
+primarily used for decrypting custom font encryption in web pages (e.g., the Qidian website).
+It supports the following functionalities:
+
+- Loading and processing known labeled character images using perceptual hashing (phash)
+  to build a database of known characters.
+- Loading precomputed character image vectors and corresponding labels for vector-based matching,
+  leveraging cosine similarity to compare input images.
+- Optionally initializing and using PaddleOCR for direct character recognition.
+- Providing fallback mechanisms that combine OCR, hash matching, and vector matching to identify
+  characters in rendered images.
+- Generating a mapping from obfuscated (randomized) fonts to their real characters by rendering
+  both reference and obfuscated fonts, then matching the results.
+- Formatting and applying the generated font mapping to convert encrypted text into readable text.
+
+The module uses libraries such as Pillow, imagehash, numpy, fontTools, and scikit-learn.
+When enabled, it integrates PaddleOCR for advanced OCR capabilities.
+
+This set of utilities is a core component of the qidian-font-decoder project,
+designed to help restore real text from dynamically scrambled fonts used as an anti-crawling measure.
 """
 import os
 import json
@@ -298,7 +319,7 @@ def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95, to
     # phash fallback
     matched_char = match_known_image(img)
     if matched_char:
-        log_message(f"[Fallback] 图像 hash 匹配成功:「{char}」->「{matched_char}」")
+        log_message(f"[Fallback] Image hash matched: '{char}' -> '{matched_char}'")
         if save_path:
             img.save(save_path)
         return matched_char if top_k == 1 else [(matched_char, 1.0)]
@@ -335,7 +356,7 @@ def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95, to
 
     candidate_scores = {}
 
-    # OCR 候选（若启用）
+    # OCR candidates (if enabled)
     if USE_OCR:
         ocr_results = None
         try:
@@ -344,44 +365,44 @@ def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95, to
             ocr_results = OCR.ocr(temp_path, cls=False)
             os.remove(temp_path)
             if ocr_results and ocr_results[0]:
-                # 将 OCR 结果转换为候选列表，假设每个结果的格式为 [[box, (text, confidence)], ...]
+                # Convert OCR results to a candidate list. Expected format: [[box, (text, confidence)], ...]
                 ocr_candidates = []
                 for line in ocr_results:
                     for res in line:
                         text, conf = res[1]
                         ocr_candidates.append((text, conf))
-                # 按 confidence 降序排序并取 top CANDIDATE_K
+                # Sort by confidence in descending order and take top CANDIDATE_K results
                 ocr_candidates.sort(key=lambda x: x[1], reverse=True)
                 for text, conf in ocr_candidates[:CANDIDATE_K]:
                     candidate_scores[text] = candidate_scores.get(text, 0) + conf * OCR_WEIGHT
-                    log_message(f"[OCR] 添加候选:「{text}」, OCR信心: {conf}")
+                    log_message(f"[OCR] Added candidate: '{text}', OCR confidence: {conf}")
         except Exception as e:
-            log_message(f"[OCR] 识别出错 ({ocr_results}): {e}", level="warning")
+            log_message(f"[OCR] Recognition error ({ocr_results}): {e}", level="warning")
 
-    # Vector 候选
+    # Vector candidates
     vector_matches = match_known_image_v2(img, top_k=CANDIDATE_K)
     if isinstance(vector_matches, tuple):
         vector_matches = [vector_matches]
     if vector_matches:
         for v_char, sim_score in vector_matches:
             candidate_scores[v_char] = candidate_scores.get(v_char, 0) + sim_score * VECTOR_WEIGHT
-            log_message(f"[Vector] 添加候选:「{v_char}」, 相似度: {sim_score}")
+            log_message(f"[Vector] Added candidate: '{v_char}', similarity: {sim_score}")
     else:
-        log_message("[Vector] 未找到匹配候选", level="warning")
+        log_message("[Vector] No matching candidate found", level="warning")
 
     if not candidate_scores:
-        log_message(f"[char] 识别失败:「{char}」({hex(ord(char))})", level="warning")
+        log_message(f"[char] Recognition failed: '{char}' ({hex(ord(char))})", level="warning")
         return None if top_k == 1 else []
 
     # 根据累计得分排序候选项
     sorted_candidates = sorted(candidate_scores.items(), key=lambda x: x[1], reverse=True)
     best_candidate, best_score = sorted_candidates[0]
     if best_score < vector_threshold:
-        log_message(f"[char] 识别失败:「{char}」, 最佳得分: {best_score:.4f} 低于阈值 {vector_threshold}", level="warning")
+        log_message(f"[char] Recognition failed: '{char}', best score: {best_score:.4f} below threshold {vector_threshold}", level="warning")
         return None if top_k == 1 else []
     if save_path:
         img.save(save_path)
-    log_message(f"[char] 识别成功 ({best_score:.4f}):「{char}」 -> 「{best_candidate}」")
+    log_message(f"[char] Recognition succeeded ({best_score:.4f}): '{char}' -> '{best_candidate}'")
     return best_candidate if top_k == 1 else sorted_candidates[:top_k]
 
 def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set, output_path, save_image=False):
@@ -504,16 +525,16 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
         return mapping_result
 
     except Exception as e:
-        log_message(f"[X] 发生错误: {e}", level="warning")
+        log_message(f"[X] An error occurred: {e}", level="warning")
     return {}
 
 def format_font_mapping_md(font_map, output_folder: str):
     """
-    将字体映射关系保存为 Markdown 文件，结合对应图片展示。
+    Save the font mapping as a Markdown file with corresponding images.
 
     Parameters:
-        font_map (dict): 映射字典 { "原字符": "识别出的字符" }
-        output_folder (str): 输出 Markdown 文件路径
+        font_map (dict): A mapping dictionary { "original character": "recognized character" }.
+        output_folder (str): The directory path where the Markdown file will be saved.
     """
     try:
         image_dir = os.path.join(IMAGE_FOLDER, "found")
@@ -527,10 +548,10 @@ def format_font_mapping_md(font_map, output_folder: str):
                 md_file.write(f"![{original_char}]({image_path})\n\n")
                 md_file.write("---\n\n")
 
-        log_message(f"[✓] Markdown 文件已保存到: {out_path}")
-
+        log_message(f"[✓] Markdown file saved to: {out_path}")
     except Exception as e:
-        log_message(f"[X] 写入 Markdown 文件时出错: {e}", level="warning")
+        log_message(f"[X] Error writing Markdown file: {e}", level="warning")
+    return
 
 def apply_font_mapping_to_text(text: str, font_map: dict):
     """

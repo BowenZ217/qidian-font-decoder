@@ -1,3 +1,20 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Logging Utilities Module
+
+This module provides custom logging functionalities for the qidian-font-decoder project.
+It includes:
+
+- A CustomFormatter class that dynamically adjusts the log format to reduce redundant context information
+  in consecutive log entries.
+- A setup_logging function to configure the logger with both a file handler and a console handler.
+- A log_message utility function to log messages uniformly using the configured logger.
+
+Logs are stored in a "logs" directory with filenames that include the current date. If the logger is not
+initialized, log_message will fall back to printing messages to the console.
+"""
+
 import logging
 import os
 import time

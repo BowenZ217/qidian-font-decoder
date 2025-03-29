@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-HTML parser utilities for extracting and reconstructing text content
-from obfuscated web pages that use randomized fonts and CSS tricks.
+HTML Parser Utilities Module
 
-Key functionalities:
-- Extract SSR pageContext embedded in the HTML
-- Parse CSS rules used to manipulate text visibility and order
-- Recursively extract <p> paragraph structure from the HTML
-- Apply rules to reconstruct real text including handling of:
-  - font-size:0 hiding
-  - transform: scaleX(-1) (mirrored characters)
-  - ::before / ::after content insertion
+This module provides a set of utility functions designed to extract and reconstruct text content 
+from obfuscated web pages that employ techniques like randomized fonts and complex CSS rules. 
+
+Key functionalities include:
+- Extracting the SSR (Server-Side Rendering) page context embedded in the HTML.
+- Parsing CSS rules that control text visibility and order, such as:
+    - font-size: 0 (to hide text)
+    - transform: scaleX(-1) (for mirrored characters)
+    - ::before and ::after pseudo-elements for inserting additional content.
+- Recursively extracting <p> paragraph structures from HTML.
+- Reconstructing the visible text by applying these CSS rules to recover the original content.
 """
 
 import json
@@ -39,8 +41,8 @@ def find_ssr_pageContext(html_str: str) -> dict:
         soup = BeautifulSoup(html_str, 'html.parser')
         script_tag = soup.find('script', {'id': 'vite-plugin-ssr_pageContext'})
         if script_tag:
-            json_data = script_tag.string.strip()  # 获取 script 标签内的字符串
-            data_dict = json.loads(json_data)  # 解析 JSON 字符串为 Python 字典
+            json_data = script_tag.string.strip()
+            data_dict = json.loads(json_data)
             return data_dict
     except Exception as e:
         log_message(f"[X] Error at find_ssr_pageContext: {e}", level="warning")
@@ -62,7 +64,7 @@ def extract_paragraphs_recursively(html_str: str, chapter_id: int) -> list:
 
     def parse_element(elem):
         nonlocal end_number
-        # 如果是 NavigableString，则直接返回文本（或跳过空白）
+        # 如果是 NavigableString, 则直接返回文本 (或跳过空白)
         if not isinstance(elem, Tag):
             return None
         result = {
