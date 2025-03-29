@@ -323,8 +323,6 @@ def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95, to
     matched_char = match_known_image(img)
     if matched_char:
         log_message(f"[Fallback] Image hash matched: '{char}' -> '{matched_char}'")
-        if save_path:
-            img.save(save_path)
         return matched_char if top_k == 1 else [(matched_char, 1.0)]
 
     # # OCR
@@ -504,8 +502,8 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
             if not valid:
                 continue
 
-            found_path = os.path.join(output_path, IMAGE_FOLDER, "found", f"{hex(ord(char))}_refl.png")
-            unfound_path = os.path.join(output_path, IMAGE_FOLDER, "unfound", f"{hex(ord(char))}_refl.png")
+            found_path = os.path.join(output_path, IMAGE_FOLDER, "found", f"{hex(ord(char))}.png")
+            unfound_path = os.path.join(output_path, IMAGE_FOLDER, "unfound", f"{hex(ord(char))}.png")
             matched_char = recognize_with_fallback(
                 char,
                 img,
