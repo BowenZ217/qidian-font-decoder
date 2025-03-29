@@ -61,9 +61,13 @@ CHAR_VECTOR_LABELS = None
 CHAR_VECTOR_SHAPE = None  # (H, W)
 CHAR_FREQ_DB = None
 
+CHAR_CANVAS_SIZE = 64
+CHAR_FONT_SIZE = 48
+
 OCR_WEIGHT = 0.05
 VECTOR_WEIGHT = 1.0
 CANDIDATE_K = 5
+CANDIDATE_FACTOR = 5
 
 
 def init(use_ocr=False, use_freq=False):
@@ -273,8 +277,7 @@ def match_known_image_v2(img, top_k: int = 1, alpha: float = 0.05):
             return results[0] if top_k == 1 else results
 
         # Determine candidate pool size (e.g., top_k * 5).
-        candidate_factor = 5
-        candidate_count = min(len(sims), top_k * candidate_factor)
+        candidate_count = min(len(sims), top_k * CANDIDATE_FACTOR)
         candidate_indices = np.argsort(sims)[-candidate_count:][::-1]
 
         candidates = []
@@ -398,7 +401,7 @@ def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95, to
     sorted_candidates = sorted(candidate_scores.items(), key=lambda x: x[1], reverse=True)
     best_candidate, best_score = sorted_candidates[0]
     if best_score < vector_threshold:
-        log_message(f"[char] Recognition failed: '{char}', best score: {best_score:.4f} below threshold {vector_threshold}", level="warning")
+        log_message(f"[char] Recognition failed: '{char}' ({hex(ord(char))}), best score: {best_score:.4f} below threshold {vector_threshold}", level="warning")
         return None if top_k == 1 else []
     if save_path:
         img.save(save_path)
@@ -430,18 +433,16 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
               Also saves this mapping to a JSON file in the output_path.
     """
     try:
-        canvas_size = 64   # Canvas size
-        font_size = 48     # Font size
         # Load and render fonts
         fixed_ttf = TTFont(fixed_font_path)
         fixed_cmap = fixed_ttf.getBestCmap()
         fixed_chars = {chr(code) for code in fixed_cmap.keys()}
-        fixed_render = ImageFont.truetype(fixed_font_path, font_size)
+        fixed_render = ImageFont.truetype(fixed_font_path, CHAR_FONT_SIZE)
 
         random_ttf = TTFont(random_font_path)
         random_cmap = random_ttf.getBestCmap()
         random_chars = {chr(code) for code in random_cmap.keys()}
-        random_render = ImageFont.truetype(random_font_path, font_size)
+        random_render = ImageFont.truetype(random_font_path, CHAR_FONT_SIZE)
 
         if CHAR_VECTOR_DB is None or CHAR_VECTOR_LABELS is None or CHAR_VECTOR_SHAPE is None or KNOWN_HASH_DB is None:
             init()
@@ -463,12 +464,12 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
                 return None, False  # Character not in either font
 
             # Create image and draw character
-            img = Image.new("L", (canvas_size, canvas_size), color=255)
+            img = Image.new("L", (CHAR_CANVAS_SIZE, CHAR_CANVAS_SIZE), color=255)
             draw = ImageDraw.Draw(img)
             bbox = draw.textbbox((0, 0), char, font=render_font)
             w, h = bbox[2] - bbox[0], bbox[3] - bbox[1]
-            x = (canvas_size - w) // 2 - bbox[0]
-            y = (canvas_size - h) // 2 - bbox[1]
+            x = (CHAR_CANVAS_SIZE - w) // 2 - bbox[0]
+            y = (CHAR_CANVAS_SIZE - h) // 2 - bbox[1]
 
             draw.text((x, y), char, fill=0, font=render_font)
 

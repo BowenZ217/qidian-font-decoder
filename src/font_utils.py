@@ -41,6 +41,7 @@ def download_font(url: str, folder: str, timeout: int = 10) -> str:
     parsed_url = urlparse(url)
     clean_path = unquote(parsed_url.path)
     filename = os.path.basename(clean_path)
+    filepath = os.path.join(folder, filename)
     if os.path.exists(filepath):
         log_message(f"[✓] Font already exists: {filepath}")
         return filepath
