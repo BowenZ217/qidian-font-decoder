@@ -72,8 +72,14 @@ def extract_paragraphs_recursively(html_str: str, chapter_id: int) -> list:
             "attrs": dict(elem.attrs),
             "data": []
         }
-        if len(elem.name) == 6 and not end_number:
-            end_number = elem.name[3:]
+        IGNORED_TAGS = {"samp", "span", "div", "p", "a"}
+        if len(elem.name) > 3 and not end_number and elem.name not in IGNORED_TAGS:
+            try:
+                int(elem.name[3:])
+                end_number = elem.name[3:]
+            except Exception as e:
+                log_message(f"[!] Failed to parse number from '{elem.name[3:]}' in elem.name='{elem.name}': {e}")
+                pass
         for child in elem.contents:
             if isinstance(child, Tag):
                 parsed = parse_element(child)
@@ -315,10 +321,12 @@ def format_chapter(title, paragraphs, authorSay=""):
     Returns:
         str: The formatted chapter text.
     """
-    formatted_paragraphs = "\n\n".join(line.strip() for line in paragraphs.splitlines() if line.strip())
-    result = f"{title}\n\n{formatted_paragraphs}"
-
-    # Append the author's comment if provided.
+    result = f"{title}\n\n{paragraphs.strip()}"
     if authorSay.strip():
-        result += f"\n\n---\n\n{authorSay}"
-    return result
+        result += f"\n\n---\n\n作者说:\n\n{authorSay.strip()}"
+
+    formatted_result = "\n\n".join(
+        line.strip() for line in result.splitlines() if line.strip()
+    )
+
+    return formatted_result

@@ -67,6 +67,9 @@ def main(args):
 
     # Extract and render paragraphs from HTML with CSS rules
     main_paragraphs, end_number = html_parser.extract_paragraphs_recursively(html_str, args.chapter_id)
+    if not end_number:
+        log_message(f"[!] Warning: No end_number found after parsing chapter '{args.chapter_id}'", level="warning")
+        return
     paragraphs_rules = html_parser.parse_rule(css_str)
     paragraphs_str, refl_list = html_parser.render_paragraphs(main_paragraphs, paragraphs_rules, end_number)
 
@@ -87,6 +90,10 @@ def main(args):
     # If enabled, save mapping preview images in Markdown format
     if args.save_image:
         ocr_utils.format_font_mapping_md(mapping_result, output_path)
+
+    debug_path = os.path.join(output_path, f"{args.chapter_id}_debug.txt")
+    with open(debug_path, 'w', encoding='utf-8') as f:
+        f.write(paragraphs_str)
 
     # Reconstruct final readable text
     final_paragraphs_str = ocr_utils.apply_font_mapping_to_text(paragraphs_str, mapping_result)
