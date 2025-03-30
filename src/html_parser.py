@@ -58,12 +58,9 @@ def extract_paragraphs_recursively(html_str: str, chapter_id: int) -> list:
         chapter_id (int): ID used to locate <main id="c-{chapter_id}">.
 
     Returns:
-        tuple[list, str]: List of parsed <p> paragraph data and end_number string.
+        list: List of parsed <p> paragraph data.
     """
-    end_number = None
-
     def parse_element(elem):
-        nonlocal end_number
         # 如果是 NavigableString, 则直接返回文本 (或跳过空白)
         if not isinstance(elem, Tag):
             return None
@@ -72,14 +69,6 @@ def extract_paragraphs_recursively(html_str: str, chapter_id: int) -> list:
             "attrs": dict(elem.attrs),
             "data": []
         }
-        IGNORED_TAGS = {"samp", "span", "div", "p", "a"}
-        if len(elem.name) > 3 and not end_number and elem.name not in IGNORED_TAGS:
-            try:
-                int(elem.name[3:])
-                end_number = elem.name[3:]
-            except Exception as e:
-                log_message(f"[!] Failed to parse number from '{elem.name[3:]}' in elem.name='{elem.name}': {e}")
-                pass
         for child in elem.contents:
             if isinstance(child, Tag):
                 parsed = parse_element(child)
@@ -103,7 +92,7 @@ def extract_paragraphs_recursively(html_str: str, chapter_id: int) -> list:
         if parsed_p:
             result.append(parsed_p)
 
-    return result, end_number
+    return result
 
 def parse_rule(css_str) -> dict:
     """
@@ -202,6 +191,104 @@ def parse_rule(css_str) -> dict:
         "rules": css_rules,
         "orders": orders
     }
+
+def parse_paragraph_names(rules: dict) -> set:
+    """
+    Parse and extract possible paragraph names from the rules dictionary.
+
+    This function processes a dictionary with a "rules" key, which maps to multiple groups
+    of rule definitions. It extracts all the keys from groups except for the group named "sy".
+
+    Args:
+        rules (dict): A dictionary containing a "rules" key. The value of "rules" should be 
+                      a dictionary mapping group names to another dictionary of rule definitions.
+
+    Returns:
+        set: A set of paragraph names (keys) extracted from the rule groups, excluding any keys
+             from the "sy" group.
+    """
+    paragraph_names = set()
+    if "rules" in rules:
+        for group, group_rules in rules["rules"].items():
+            # Skip the group named "sy".
+            if group == "sy":
+                continue
+            # Add all keys from the current group to the result set.
+            paragraph_names.update(group_rules.keys())
+    
+    return paragraph_names
+
+def parse_end_number(main_paragraphs: list, paragraph_names: set):
+    """
+    Recursively parse a list of dictionaries to extract and count ending numbers from "tag" keys.
+
+    This function traverses a nested data structure (lists and dictionaries) where each dictionary
+    may contain a "tag" key. If a dictionary contains a "tag", the function checks whether its value 
+    starts with any of the given paragraph names (provided in the set `paragraph_names`). If it does, 
+    the function extracts the remaining part of the tag (i.e. the substring after the matched prefix)
+    and, if this remainder is a valid number, updates a count for that number in an internal dictionary.
+
+    After processing the entire structure, the function returns the most common ending number. 
+    In case of a tie, the largest number is returned.
+
+    Args:
+        main_paragraphs (list): A list of dictionaries (and possibly nested lists/dicts) to be parsed.
+        paragraph_names (set): A set of string prefixes used to match the beginning of a "tag" value.
+
+    Returns:
+        int or None: The ending number that appears most frequently (with ties broken by choosing the 
+                     larger number). Returns None if no valid ending number is found.
+    """
+    # Dictionary to keep track of occurrence counts for each ending number.
+    end_numbers = {}
+
+    def rec_parse(item):
+        """
+        Recursive helper function to traverse the nested structure.
+
+        If the item is a list, it iterates over each element and recalls itself.
+        If the item is a dictionary, it checks for the "tag" key and processes it if present.
+        The function continues to traverse any nested dictionaries or lists found in the values.
+        """
+        if isinstance(item, list):
+            for element in item:
+                rec_parse(element)
+        elif isinstance(item, dict):
+            tag_value = item.get("tag")
+            if isinstance(tag_value, str):
+                # Check if the tag_value starts with any of the paragraph_names prefixes.
+                for prefix in paragraph_names:
+                    if tag_value.startswith(prefix):
+                        # Extract the remaining substring after the prefix.
+                        remaining = tag_value[len(prefix):]
+                        if remaining.isdigit():
+                            num = int(remaining)
+                            end_numbers[num] = end_numbers.get(num, 0) + 1
+                        break  # If one prefix matches, no need to check others.
+            # Recursively process every value in the dictionary.
+            for value in item.values():
+                if isinstance(value, (dict, list)):
+                    rec_parse(value)
+
+    rec_parse(main_paragraphs)
+
+    if not end_numbers:
+        log_message(f"[X] No valid ending numbers found", level="warning")
+        return None
+
+    # Sort the numbers by their count, then by the number itself (both in descending order).
+    # If there is a tie in frequency, choose the largest number.
+    sorted_numbers = sorted(end_numbers.items(), key=lambda x: (x[1], x[0]), reverse=True)
+
+    # Log the top 3 most common ending numbers for debugging
+    top_three = sorted_numbers[:3]
+    debug_message = "Top 3 end numbers:\n"
+    for num, count in top_three:
+        debug_message += f"{num}: {count}\n"
+    log_message(debug_message)
+
+    most_common = sorted_numbers[0][0]
+    return most_common
 
 def render_paragraphs(main_paragraphs, rules, end_number):
     """

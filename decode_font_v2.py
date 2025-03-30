@@ -65,11 +65,13 @@ def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr, use_fr
     fixedFont_path = font_utils.download_font(fixedFontWoff2_str, TEMP_FOLDER)
 
     # Extract and render paragraphs from HTML with CSS rules
-    main_paragraphs, end_number = html_parser.extract_paragraphs_recursively(html_str, chapter_id)
+    main_paragraphs = html_parser.extract_paragraphs_recursively(html_str, chapter_id)
+    paragraphs_rules = html_parser.parse_rule(css_str)
+    paragraph_names = html_parser.parse_paragraph_names(paragraphs_rules)
+    end_number = html_parser.parse_end_number(main_paragraphs, paragraph_names)
     if not end_number:
         log_message(f"[!] Warning: No end_number found after parsing chapter '{chapter_id}'", level="warning")
         return
-    paragraphs_rules = html_parser.parse_rule(css_str)
     paragraphs_str, refl_list = html_parser.render_paragraphs(main_paragraphs, paragraphs_rules, end_number)
 
     # Run OCR + fallback mapping
