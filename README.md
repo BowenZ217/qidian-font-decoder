@@ -116,7 +116,7 @@ python decode_font.py --html_path chapter.html --chapter_id 12345678 --save_imag
 If there are multiple HTML files, you can name them as `<chapter_id>.html` and place them in the same folder (for example, in a folder named `data/html`), then run:
 
 ```bash
-python decode_font_v2.py --html_folder data/html --save_image --save_dir output/ --use_freq
+python decode_font_v2.py --html_folder data/html --save_dir output/ --use_freq
 ```
 
 ### 4.5. Explanation of Script Behavior
@@ -133,7 +133,7 @@ The script performs the following actions:
 
 ### 5. Output Results
 
-Upon successful execution, the following files will be generated in the `output/{chapter_id}` directory:
+Upon successful execution, the following files will be generated in the `output/{chapter_id}` or `output/txt` directory:
 - `{chapter_id}.txt`: The decoded text content.
 - `font_mapping.json`: The character mapping dictionary.
 - `chars/found/`: Images of characters that were successfully recognized via OCR or matching (if `--save_image` is enabled).
@@ -174,7 +174,7 @@ Upon successful matching, logs similar to the following will be displayed:
 The final decrypted text will be saved at:
 
 ```
-output/<chapter_id>/<chapter_id>.txt
+output/txt/<chapter_id>.txt
 ```
 
 Please open this file and verify that the text content has been restored correctly.
@@ -213,6 +213,7 @@ qidian-font-decoder/
 ├── resources/
 ├── src/
 │   ├── __init__.py
+│   ├── chapter_processor.py# Main logic
 │   ├── font_utils.py       # Font processing logic (download/parse/mapping)
 │   ├── ocr_utils.py        # OCR-related functions (using PaddleOCR and image vector)
 │   └── html_parser.py      # Qidian webpage structure analysis, extracting font URLs, CSS, and obfuscated text
