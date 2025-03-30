@@ -29,6 +29,7 @@ import json
 
 import imagehash
 import numpy as np
+from numpy import asarray
 from fontTools.ttLib import TTFont
 from PIL import Image, ImageFont, ImageDraw
 from sklearn.metrics.pairwise import cosine_similarity
@@ -361,16 +362,33 @@ def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95, to
     if USE_OCR:
         ocr_results = None
         try:
-            temp_path = "temp.png"
-            img.save(temp_path)
-            ocr_results = OCR.ocr(temp_path, cls=False)
-            os.remove(temp_path)
+            # temp_path = "temp.png"
+            # img.save(temp_path)
+            # ocr_results = OCR.ocr(temp_path, cls=False)
+            # os.remove(temp_path)
+            # if ocr_results and ocr_results[0]:
+            #     # Convert OCR results to a candidate list. Expected format: [[box, (text, confidence)], ...]
+            #     ocr_candidates = []
+            #     for line in ocr_results:
+            #         for res in line:
+            #             text, conf = res[1]
+            #             ocr_candidates.append((text, conf))
+            #     # Sort by confidence in descending order and take top CANDIDATE_K results
+            #     ocr_candidates.sort(key=lambda x: x[1], reverse=True)
+            #     for text, conf in ocr_candidates[:CANDIDATE_K]:
+            #         candidate_scores[text] = candidate_scores.get(text, 0) + conf * OCR_WEIGHT
+            #         log_message(f"[OCR] Added candidate: '{text}', OCR confidence: {conf}")
+
+            # ------------------------------------------
+
+            img_np = asarray(img)
+            ocr_results = OCR.ocr(img_np, det=False, cls=False)
             if ocr_results and ocr_results[0]:
                 # Convert OCR results to a candidate list. Expected format: [[box, (text, confidence)], ...]
                 ocr_candidates = []
                 for line in ocr_results:
                     for res in line:
-                        text, conf = res[1]
+                        text, conf = res
                         ocr_candidates.append((text, conf))
                 # Sort by confidence in descending order and take top CANDIDATE_K results
                 ocr_candidates.sort(key=lambda x: x[1], reverse=True)
