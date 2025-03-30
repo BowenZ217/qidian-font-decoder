@@ -221,8 +221,6 @@ qidian-font-decoder/
 ├── other_tools/            # 附加工具 (测试、图像生成、数据集构造等)
 ├── fonts/                  # 字体文件
 ├── temp/                   # 临时缓存文件
-├── test.ipynb              # 测试文件
-├── PaddleOCR.ipynb         # 测试 PaddleOCR 文件
 ├── decode_font.py          # 主入口脚本
 ├── decode_font_v2.py       # 主入口脚本 2.0
 ├── requirements.txt        # 依赖包列表
