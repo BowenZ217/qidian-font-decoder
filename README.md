@@ -221,8 +221,6 @@ qidian-font-decoder/
 ├── other_tools/            # Additional tools (testing, image generation, dataset construction, etc.)
 ├── fonts/                  # Font files
 ├── temp/                   # Temporary cache files
-├── test.ipynb              # Test notebook
-├── PaddleOCR.ipynb         # PaddleOCR test notebook
 ├── decode_font.py          # Main entry script
 ├── decode_font_v2.py       # Main entry script 2.0
 ├── requirements.txt        # Dependency list
