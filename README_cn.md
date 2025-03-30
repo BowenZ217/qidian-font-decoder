@@ -116,7 +116,7 @@ python decode_font.py --html_path chapter.html --chapter_id 12345678 --save_imag
 如果有多个 html 则可以将文件命名为 `<chapter_id>.html` 放在同一个文件夹内 (假设为 `data/html` 文件夹) 并运行
 
 ```bash
-python decode_font_v2.py --html_folder data/html --save_image --save_dir output/ --use_freq
+python decode_font_v2.py --html_folder data/html --save_dir output/ --use_freq
 ```
 
 ### 4.5. 脚本行为说明
@@ -133,7 +133,7 @@ python decode_font_v2.py --html_folder data/html --save_image --save_dir output/
 
 ### 5. 输出结果
 
-运行成功后将在 `output/{chapter_id}` 目录下生成: 
+运行成功后将在 `output/{chapter_id}` 和 `output/txt` 目录下生成: 
 - `{chapter_id}.txt`: 解码后的正文内容
 - `font_mapping.json`: 字符映射字典
 - `chars/found/`: OCR 或匹配成功的字符图像 (若启用了 `--save_image`)
@@ -175,7 +175,7 @@ python decode_font_v2.py --html_folder data/html --save_image --save_dir output/
 最终的解密文本将保存在: 
 
 ```
-output/<chapter_id>/<chapter_id>.txt
+output/txt/<chapter_id>.txt
 ```
 
 请打开该文件, 检查正文内容是否恢复正确
