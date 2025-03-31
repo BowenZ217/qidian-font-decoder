@@ -37,7 +37,7 @@ def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr, use_fr
     os.makedirs(txt_folder, exist_ok=True)
     txt_path = os.path.join(txt_folder, f"{chapter_id}.txt")
     if os.path.exists(txt_path):
-        log_message(f"[!] Chapter {chapter_id} already processed. Skipping.", level="warning")
+        log_message(f"[!] Chapter {chapter_id} already processed. Skipping...")
         return
 
     output_path = os.path.join(save_dir, str(chapter_id))
