@@ -72,9 +72,22 @@ def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr, use_fr
 
     # Extract and render paragraphs from HTML with CSS rules
     main_paragraphs = html_parser.extract_paragraphs_recursively(html_str, chapter_id)
+    main_paragraphs_path = os.path.join(output_path, f"main_paragraphs_debug.json")
+    with open(main_paragraphs_path, 'w', encoding='utf-8') as f:
+        json.dump(main_paragraphs, f, ensure_ascii=False, indent=2)
+    
     paragraphs_rules = html_parser.parse_rule(css_str)
+    paragraphs_rules_path = os.path.join(output_path, f"paragraphs_rules_debug.json")
+    with open(paragraphs_rules_path, 'w', encoding='utf-8') as f:
+        json.dump(paragraphs_rules, f, ensure_ascii=False, indent=2)
+
     paragraph_names = html_parser.parse_paragraph_names(paragraphs_rules)
     end_number = html_parser.parse_end_number(main_paragraphs, paragraph_names)
+    paragraph_names_path = os.path.join(output_path, f"paragraph_names_debug.txt")
+    with open(paragraph_names_path, 'w', encoding='utf-8') as f:
+        temp = f"names:\n{paragraph_names}\n\nend_number: {end_number}"
+        f.write(temp)
+
     if not end_number:
         log_message(f"[!] Warning: No end_number found after parsing chapter '{chapter_id}'", level="warning")
         return
