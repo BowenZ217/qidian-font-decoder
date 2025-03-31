@@ -48,7 +48,7 @@ def find_ssr_pageContext(html_str: str) -> dict:
         log_message(f"[X] Error at find_ssr_pageContext: {e}", level="warning")
     return {}
 
-def extract_paragraphs_recursively(html_str: str, chapter_id: int) -> list:
+def extract_paragraphs_recursively(html_str: str, chapter_id: int=-1) -> list:
     """
     Extracts paragraph elements under <main id="c-{chapter_id}"> from HTML
     and converts them to a nested data structure for further processing.
@@ -81,10 +81,13 @@ def extract_paragraphs_recursively(html_str: str, chapter_id: int) -> list:
         return result
 
     soup = BeautifulSoup(html_str, 'html.parser')
-    main_id = f'c-{chapter_id}'
-    main_tag = soup.find('main', id=main_id)
-    if not main_tag:
-        return []
+    if chapter_id > 0:
+        main_id = f'c-{chapter_id}'
+        main_tag = soup.find('main', id=main_id)
+        if not main_tag:
+            return []
+    else:
+        main_tag = soup
 
     result = []
     for p in main_tag.find_all('p'):
