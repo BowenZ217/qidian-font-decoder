@@ -120,7 +120,7 @@ def load_known_images(image_folder, mapping_json_path):
         with open(mapping_json_path, 'r', encoding='utf-8') as f:
             label_map = json.load(f)
     except Exception as e:
-        log_message(f"[!] Failed to load label map: {e}", level="warning")
+        log_message(f"[X] Failed to load label map: {e}", level="warning")
         KNOWN_HASH_DB = None
         return False
 
@@ -143,7 +143,7 @@ def load_known_images(image_folder, mapping_json_path):
         return False
 
     KNOWN_HASH_DB = hash_db
-    log_message(f"[✓] Loaded {len(hash_db)} image hashes from: {image_folder}")
+    log_message(f"[DONE] Loaded {len(hash_db)} image hashes from: {image_folder}")
     return True
 
 def load_known_vector_db():
@@ -172,10 +172,10 @@ def load_known_vector_db():
         with open(LABEL_TXT_PATH, "r", encoding="utf-8") as f:
             CHAR_VECTOR_LABELS = [line.strip() for line in f]
 
-        log_message(f"[✓] Loaded {num_chars} character vectors from resources (size: {CHAR_VECTOR_SHAPE})")
+        log_message(f"[DONE] Loaded {num_chars} character vectors from resources (size: {CHAR_VECTOR_SHAPE})")
         return True
     except Exception as e:
-        log_message(f"[!] Failed to load known vector DB: {e}", level="warning")
+        log_message(f"[X] Failed to load known vector DB: {e}", level="warning")
         return False
 
 def load_char_freq_db():
@@ -194,12 +194,12 @@ def load_char_freq_db():
     try:
         with open(CHAR_FREQ_PATH, "r", encoding="utf-8") as f:
             CHAR_FREQ_DB = json.load(f)
-        log_message(f"[✓] Successfully loaded character frequency data from {CHAR_FREQ_PATH}")
+        log_message(f"[DONE] Successfully loaded character frequency data from {CHAR_FREQ_PATH}")
         return True
     except json.JSONDecodeError as e:
-        log_message(f"[!] JSON decoding error while loading frequency table: {e}", level="warning")
+        log_message(f"[X] JSON decoding error while loading frequency table: {e}", level="warning")
     except Exception as e:
-        log_message(f"[!] Unexpected error while loading frequency table DB: {e}", level="warning")
+        log_message(f"[X] Unexpected error while loading frequency table DB: {e}", level="warning")
     return False
 
 def match_known_image(img, known_hash_db=None, threshold=5):
@@ -222,7 +222,7 @@ def match_known_image(img, known_hash_db=None, threshold=5):
     try:
         img_hash = imagehash.phash(img)
     except Exception as e:
-        log_message(f"[!] Failed to compute hash for image: {e}", level="warning")
+        log_message(f"[X] Failed to compute hash for image: {e}", level="warning")
         return None
 
     best_match = None
@@ -300,7 +300,7 @@ def match_known_image_v2(img, top_k: int = 1, alpha: float = 0.05):
         final_results = [(char, sim) for char, sim, _ in candidates[:top_k]]
         return final_results[0] if top_k == 1 else final_results
     except Exception as e:
-        log_message(f"[!] Failed to match image: {e}", level="warning")
+        log_message(f"[X] Failed to match image: {e}", level="warning")
         return "" if top_k == 1 else []
 
 def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95, top_k: int = 1):
@@ -565,7 +565,7 @@ def format_font_mapping_md(font_map, output_folder: str):
                 md_file.write(f"![{original_char}]({image_path})\n\n")
                 md_file.write("---\n\n")
 
-        log_message(f"[✓] Markdown file saved to: {out_path}")
+        log_message(f"[DONE] Markdown file saved to: {out_path}")
     except Exception as e:
         log_message(f"[X] Error writing Markdown file: {e}", level="warning")
     return

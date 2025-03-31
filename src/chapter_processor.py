@@ -120,5 +120,5 @@ def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr, use_fr
     final_str = html_parser.format_chapter(chapterName_str, final_paragraphs_str, authorSay_str)
     with open(txt_path, 'w', encoding='utf-8') as f:
         f.write(final_str)
-    log_message(f"[√] Processed chapter {chapter_id} successfully.")
+    log_message(f"[DONE] Processed chapter {chapter_id} successfully.")
     return

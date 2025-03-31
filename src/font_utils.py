@@ -43,7 +43,7 @@ def download_font(url: str, folder: str, timeout: int = 10) -> str:
     filename = os.path.basename(clean_path)
     filepath = os.path.join(folder, filename)
     if os.path.exists(filepath):
-        log_message(f"[✓] Font already exists: {filepath}")
+        log_message(f"[DONE] Font already exists: {filepath}")
         return filepath
 
     # Try to download the font file
@@ -55,7 +55,7 @@ def download_font(url: str, folder: str, timeout: int = 10) -> str:
             for chunk in response.iter_content(chunk_size=8192):
                 if chunk:  # Avoid writing keep-alive chunks
                     f.write(chunk)
-        log_message(f"[✓] Font saved to: {filepath}")
+        log_message(f"[DONE] Font saved to: {filepath}")
         return filepath
     except requests.RequestException as e:
         log_message(f"[X] Failed to download font: {e}", level="warning")
