@@ -241,6 +241,7 @@ def parse_end_number(main_paragraphs: list, paragraph_names: set):
     """
     # Dictionary to keep track of occurrence counts for each ending number.
     end_numbers = {}
+    paragraph_names = sorted(paragraph_names, key=lambda x: len(x), reverse=True)
 
     def rec_parse(item):
         """
