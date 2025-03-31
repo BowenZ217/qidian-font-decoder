@@ -50,12 +50,13 @@ def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr, use_fr
     # Extract embedded fonts and CSS from HTML (SSR React data)
     try:
         ssr_pageContext = html_parser.find_ssr_pageContext(html_str)
-        css_str = ssr_pageContext['pageContext']['pageProps']['pageData']['chapterInfo']['css']
-        randomFont_str = ssr_pageContext['pageContext']['pageProps']['pageData']['chapterInfo']['randomFont']
-        fixedFontWoff2_str = ssr_pageContext['pageContext']['pageProps']['pageData']['chapterInfo']['fixedFontWoff2']
-        fixedFontTtf_str = ssr_pageContext['pageContext']['pageProps']['pageData']['chapterInfo']['fixedFontTtf']
-        chapterName_str = ssr_pageContext["pageContext"]["pageProps"]["pageData"]["chapterInfo"]["chapterName"]
-        authorSay_str = ssr_pageContext["pageContext"]["pageProps"]["pageData"]["chapterInfo"]["authorSay"]
+        ssr_chapterInfo = ssr_pageContext['pageContext']['pageProps']['pageData']['chapterInfo']
+        css_str = ssr_chapterInfo['css']
+        randomFont_str = ssr_chapterInfo['randomFont']
+        fixedFontWoff2_str = ssr_chapterInfo['fixedFontWoff2']
+        fixedFontTtf_str = ssr_chapterInfo['fixedFontTtf']
+        chapterName_str = ssr_chapterInfo['chapterName']
+        authorSay_str = ssr_chapterInfo['authorSay']
     except Exception as e:
         log_message(f"[X] Fail to get ssr_pageContext: {e}", level="warning")
         return

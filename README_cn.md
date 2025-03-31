@@ -83,6 +83,54 @@ pip install -r requirements.txt
 
 > TODO: 后续支持直接从网络链接下载章节 HTML (包括 Cookie 处理)
 
+注:
+- 不确定怎么解析 `<script id="vite-plugin-ssr_pageContext" type="application/json">` 里的 `['pageContext']['pageProps']['pageData']['chapterInfo']['content']`
+- 目前如果直接保存加载完的网页是包含解码完的正文内容
+- 如果弄好可以直接:
+  ```python
+  import requests
+  # ...
+  def main():
+    book_id = 123
+    chapter_id = 456
+    url = f"https://www.qidian.com/chapter/{book_id}/{chapter_id}/"
+    headers = {
+      "Accept": "xxx",
+      # ...
+      "Cookie": "...",
+      # ...
+      "User-Agent": "xxx"
+    }
+    try:
+      resp = requests.get(url, headers=headers)
+      resp.raise_for_status()
+      resp_str = resp.text
+    except Exception as e:
+      print(f"requests 请求出错: {e}")
+      return
+    ssr_pageContext = html_parser.find_ssr_pageContext(html_str)
+    ssr_chapterInfo = ssr_pageContext['pageContext']['pageProps']['pageData']['chapterInfo']
+    # css_str = ...
+    # ...
+    content_str = ssr_chapterInfo['content']
+    content_decoded = xxx(content_str)
+    # ...
+
+    # Save / Download Fonts
+    # ...
+
+    # Extract and render paragraphs from HTML with CSS rules
+    main_paragraphs = html_parser.extract_paragraphs_recursively(content_decoded)
+    # paragraphs_rules = ...
+    # ...
+
+    # Run OCR + fallback mapping
+    # ...
+
+    # Reconstruct final readable text
+    # ...
+  ```
+
 ### 4. 执行解析脚本
 
 运行解析脚本进行字体解密与文本重构, 示例命令如下:
