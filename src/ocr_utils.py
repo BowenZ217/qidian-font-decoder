@@ -358,6 +358,25 @@ def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95, to
 
     candidate_scores = {}
 
+    # Vector candidates
+    vector_matches = match_known_image_v2(img, top_k=CANDIDATE_K)
+    if isinstance(vector_matches, tuple):
+        vector_matches = [vector_matches]
+    if vector_matches:
+        vector_matches.sort(key=lambda x: x[1], reverse=True)
+        top_match_char, top_match_score = vector_matches[0]
+        if top_match_score > min(vector_threshold + 0.45, 0.995):
+            log_message(f"[Vector] Recognition succeeded ({top_match_score:.4f}): '{char}' -> '{top_match_char}'")
+            if save_path:
+                img.save(save_path)
+            return top_match_char if top_k == 1 else [(top_match_char, 1.0)]
+
+        for v_char, sim_score in vector_matches:
+            candidate_scores[v_char] = candidate_scores.get(v_char, 0) + sim_score * VECTOR_WEIGHT
+            log_message(f"[Vector] Added candidate: '{v_char}', similarity: {sim_score}")
+    else:
+        log_message("[Vector] No matching candidate found", level="warning")
+
     # OCR candidates (if enabled)
     if USE_OCR:
         ocr_results = None
@@ -397,17 +416,6 @@ def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95, to
                     log_message(f"[OCR] Added candidate: '{text}', OCR confidence: {conf}")
         except Exception as e:
             log_message(f"[OCR] Recognition error ({ocr_results}): {e}", level="warning")
-
-    # Vector candidates
-    vector_matches = match_known_image_v2(img, top_k=CANDIDATE_K)
-    if isinstance(vector_matches, tuple):
-        vector_matches = [vector_matches]
-    if vector_matches:
-        for v_char, sim_score in vector_matches:
-            candidate_scores[v_char] = candidate_scores.get(v_char, 0) + sim_score * VECTOR_WEIGHT
-            log_message(f"[Vector] Added candidate: '{v_char}', similarity: {sim_score}")
-    else:
-        log_message("[Vector] No matching candidate found", level="warning")
 
     if not candidate_scores:
         log_message(f"[char] Recognition failed: '{char}' ({hex(ord(char))})", level="warning")
