@@ -44,10 +44,14 @@ ROOT_DIR = os.path.abspath(os.path.join(CUR_DIR, ".."))
 
 # 拼出资源路径
 KNOWN_IMAGE_FOLDER = os.path.join(ROOT_DIR, "resources", "known_chars")
+FIXED_FONT_MAP_FOLDER = os.path.join(ROOT_DIR, "resources", "fixed_font_map")
 KNOWN_MAPPING_JSON = os.path.join(ROOT_DIR, "resources", "image_label_map.json")
 VECTOR_NPY_PATH = os.path.join(ROOT_DIR, "resources", "char_vectors.npy")
 LABEL_TXT_PATH = os.path.join(ROOT_DIR, "resources", "char_vectors.txt")
 CHAR_FREQ_PATH = os.path.join(ROOT_DIR, "resources", "char_freq.json")
+
+os.makedirs(KNOWN_IMAGE_FOLDER, exist_ok=True)
+os.makedirs(FIXED_FONT_MAP_FOLDER, exist_ok=True)
 
 IMAGE_FOLDER = 'chars'
 
@@ -457,6 +461,13 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
               Also saves this mapping to a JSON file in the output_path.
     """
     try:
+        fixed_font_map = {}
+        fixed_font_filemame = os.path.basename(fixed_font_path)
+        fixed_font_map_path = os.path.join(FIXED_FONT_MAP_FOLDER, f"{fixed_font_filemame}.json")
+        if os.path.exists(fixed_font_map_path):
+            with open(fixed_font_map_path, 'r', encoding='utf-8') as f:
+                fixed_font_map = json.load(f)
+            log_message(f"[FONT] Loaded fixed font map from: {fixed_font_map_path}")
         # Load and render fonts
         fixed_ttf = TTFont(fixed_font_path)
         fixed_cmap = fixed_ttf.getBestCmap()
@@ -504,6 +515,12 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
 
         # Process normal characters
         for char in sorted(char_set):
+            if char in fixed_chars and char in fixed_font_map:
+                mapped_char = fixed_font_map[char]
+                log_message(f"[FONT] Reused mapping: '{char}' -> '{mapped_char}' from fixed_font_map")
+                mapping_result[char] = mapped_char
+                continue
+
             img, valid = render_and_ocr(char)
             if not valid:
                 continue
@@ -518,12 +535,20 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
 
             if matched_char:
                 mapping_result[char] = matched_char
+                if char in fixed_chars:
+                    fixed_font_map[char] = matched_char
             else:
                 if save_image:
                     img.save(unfound_path)
 
         # Process mirrored characters
         for char in sorted(refl_set):
+            if char in fixed_chars and char in fixed_font_map:
+                mapped_char = fixed_font_map[char]
+                log_message(f"[FONT] Reused mapping: '{char}' -> '{mapped_char}' from fixed_font_map")
+                mapping_result[char] = mapped_char
+                continue
+
             img, valid = render_and_ocr(char, is_reflect=True)
             if not valid:
                 continue
@@ -538,6 +563,8 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
 
             if matched_char:
                 mapping_result[char] = matched_char
+                if char in fixed_chars:
+                    fixed_font_map[char] = matched_char
             else:
                 if save_image:
                     img.save(unfound_path)
@@ -547,6 +574,8 @@ def generate_font_mapping(fixed_font_path, random_font_path, char_set, refl_set,
         filepath = os.path.join(output_path, "font_mapping.json")
         with open(filepath, 'w', encoding='utf-8') as f:
             json.dump(mapping_result, f, ensure_ascii=False, indent=2)
+        with open(fixed_font_map_path, 'w', encoding='utf-8') as f:
+            json.dump(fixed_font_map, f, ensure_ascii=False, indent=2)
         return mapping_result
 
     except Exception as e:
