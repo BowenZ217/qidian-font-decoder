@@ -71,7 +71,7 @@ CHAR_FONT_SIZE = 48
 
 OCR_WEIGHT = 0.05
 VECTOR_WEIGHT = 1.0
-CANDIDATE_K = 5
+CANDIDATE_K = 10
 CANDIDATE_FACTOR = 5
 
 
@@ -276,7 +276,7 @@ def match_known_image_v2(img, top_k: int = 1, alpha: float = 0.05):
         # Compute cosine similarities.
         sims = cosine_similarity([vec], CHAR_VECTOR_DB)[0]
         top_sim = np.max(sims)
-        if not USE_FREQ or top_sim > 0.97:
+        if not USE_FREQ or top_sim > 0.98:
             top_indices = np.argsort(sims)[-top_k:][::-1]
             results = [(CHAR_VECTOR_LABELS[i], sims[i]) for i in top_indices]
             return results[0] if top_k == 1 else results
@@ -369,7 +369,7 @@ def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95, to
     if vector_matches:
         vector_matches.sort(key=lambda x: x[1], reverse=True)
         top_match_char, top_match_score = vector_matches[0]
-        if top_match_score > min(vector_threshold + 0.45, 0.995):
+        if top_match_score > min(vector_threshold + 0.045, 0.995):
             log_message(f"[Vector] Recognition succeeded ({top_match_score:.4f}): '{char}' -> '{top_match_char}'")
             if save_path:
                 img.save(save_path)
@@ -412,6 +412,8 @@ def recognize_with_fallback(char, img, save_path=None, vector_threshold=0.95, to
                 for line in ocr_results:
                     for res in line:
                         text, conf = res
+                        if conf < 0.9 or len(text) != 1:
+                            continue
                         ocr_candidates.append((text, conf))
                 # Sort by confidence in descending order and take top CANDIDATE_K results
                 ocr_candidates.sort(key=lambda x: x[1], reverse=True)
