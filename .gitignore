@@ -179,3 +179,4 @@ temp/
 output/
 PP-OCRv4-server/
 loga/
+resources/fixed_font_map/**

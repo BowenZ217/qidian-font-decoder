@@ -98,6 +98,11 @@ def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr, use_fr
     char_set = set(c for c in paragraphs_str if c not in {' ', '\n', '\u3000'})
     refl_set = set(refl_list)
     char_set = char_set - refl_set
+    paragraph_names_path = os.path.join(output_path, f"char_set_debug.txt")
+    with open(paragraph_names_path, 'w', encoding='utf-8') as f:
+        temp = f"char_set:\n{char_set}\n\nrefl_set: {refl_set}"
+        f.write(temp)
+
     ocr_utils.init(use_ocr=use_ocr, use_freq=use_freq)
     mapping_result = ocr_utils.generate_font_mapping(
         fixedFont_path,
