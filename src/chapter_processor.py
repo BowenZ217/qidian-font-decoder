@@ -33,10 +33,10 @@ def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr, use_fr
         log_message(f"[X] File not exist: {html_path}", level="warning")
         return
 
-    txt_folder = os.path.join(save_dir, "txt")
-    os.makedirs(txt_folder, exist_ok=True)
-    txt_path = os.path.join(txt_folder, f"{chapter_id}.txt")
-    if os.path.exists(txt_path):
+    json_folder = os.path.join(save_dir, "json")
+    os.makedirs(json_folder, exist_ok=True)
+    json_path = os.path.join(json_folder, f"{chapter_id}.json")
+    if os.path.exists(json_path):
         log_message(f"[!] Chapter {chapter_id} already processed. Skipping...")
         return
 
@@ -54,9 +54,20 @@ def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr, use_fr
         css_str = ssr_chapterInfo['css']
         randomFont_str = ssr_chapterInfo['randomFont']
         fixedFontWoff2_str = ssr_chapterInfo['fixedFontWoff2']
-        fixedFontTtf_str = ssr_chapterInfo['fixedFontTtf']
-        chapterName_str = ssr_chapterInfo['chapterName']
-        authorSay_str = ssr_chapterInfo['authorSay']
+        # fixedFontTtf_str = ssr_chapterInfo['fixedFontTtf']
+        title = ssr_chapterInfo.get("chapterName", "Untitled")
+        chapter_id = ssr_chapterInfo.get("chapterId", "")
+        author_say = ssr_chapterInfo.get("authorSay", "")
+        update_time = ssr_chapterInfo.get("updateTime", "")
+        update_timestamp = ssr_chapterInfo.get("updateTimestamp", 0)
+        modify_time = ssr_chapterInfo.get("modifyTime", 0)
+        word_count = ssr_chapterInfo.get("wordsCount", 0)
+        vip = bool(ssr_chapterInfo.get("vipStatus", 0))
+        is_buy = bool(ssr_chapterInfo.get("isBuy", 0))
+        seq = ssr_chapterInfo.get("seq", None)
+        order = ssr_chapterInfo.get("chapterOrder", None)
+        volume = ssr_chapterInfo.get("extra", {}).get("volumeName", "")
+
     except Exception as e:
         log_message(f"[X] Fail to get ssr_pageContext: {e}", level="warning")
         return
@@ -122,9 +133,26 @@ def process_chapter(html_path, chapter_id, save_image, save_dir, use_ocr, use_fr
         f.write(paragraphs_str)
 
     # Reconstruct final readable text
-    final_paragraphs_str = ocr_utils.apply_font_mapping_to_text(paragraphs_str, mapping_result)
-    final_str = html_parser.format_chapter(chapterName_str, final_paragraphs_str, authorSay_str)
-    with open(txt_path, 'w', encoding='utf-8') as f:
-        f.write(final_str)
+    original_text = ocr_utils.apply_font_mapping_to_text(paragraphs_str, mapping_result)
+    final_paragraphs_str = "\n\n".join(
+        line.strip() for line in original_text.splitlines() if line.strip()
+    )
+    chapter_info = {
+        "id": str(chapter_id),
+        "title": title,
+        "content": final_paragraphs_str,
+        "author_say": author_say.strip() if author_say else "",
+        "updated_at": update_time,
+        "update_timestamp": update_timestamp,
+        "modify_time": modify_time,
+        "word_count": word_count,
+        "vip": vip,
+        "purchased": is_buy,
+        "order": order,
+        "seq": seq,
+        "volume": volume,
+    }
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(chapter_info, f, ensure_ascii=False, indent=2)
     log_message(f"[DONE] Processed chapter {chapter_id} successfully.")
     return
