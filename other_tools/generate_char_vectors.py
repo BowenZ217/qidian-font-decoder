@@ -59,7 +59,12 @@ def generate_char_vectors(font_path, start_idx, end_idx, extra_chars, output_fil
             print(f"[!] Skipping char '{ch}' due to error: {e}")
             continue
 
-    vectors = np.array(vectors)
+    # vectors = np.array(vectors)
+    vectors = np.array(vectors, dtype=np.float32)
+    norms = np.linalg.norm(vectors, axis=1, keepdims=True)
+    norms[norms == 0] = 1e-10
+    vectors /= norms
+    
     np.save(output_file, vectors)
     print(f"[✓] Saved vectors to: {output_file} (shape: {vectors.shape})")
 
